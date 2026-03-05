@@ -20,10 +20,10 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
+# 虚拟环境
 venv/
-env/
 ENV/
+env/
 
 # IDE
 .vscode/
@@ -32,26 +32,37 @@ ENV/
 *.swo
 *~
 
-# OS
-.DS_Store
-.Thumbs.db
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+users.db
 
-# Claude Code
-.claude/
-
-# Screenshots and test reports (optional - comment out if you want to track them)
-# *.png
-# screenshot_*
-# visual_screenshot_*
-# test_report_*.json
-# visual_test_report_*.json
-
-# Temporary files
+# 日志
 *.log
-*.tmp
-.cache/
-.pytest_cache/
+server.log
+nohup.out
 
-# Environment files
+# 临时文件
+*.tmp
+*.temp
+/tmp/
+.DS_Store
+
+# 截图
+*.png
+screenshot*.png
+/tmp/*.png
+
+# 配置文件（可能包含敏感信息）
 .env
-.env.local
+config.ini
+secrets.yaml
+
+# 用户的自定义文件
+local_*
+user_*
+
+# 测试文件
+test_*
+*_test.py
