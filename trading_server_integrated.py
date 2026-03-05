@@ -879,6 +879,237 @@ def api_cancel():
         return jsonify({'error': f'撤单异常: {str(e)}'}), 500
 
 
+# -------------------------- 回测系统 --------------------------
+
+@app.route('/api/backtest/run', methods=['POST'])
+@require_auth
+def api_backtest_run():
+    """运行策略回测"""
+    try:
+        data = request.get_json()
+
+        # 参数验证
+        required_fields = ['strategy_type', 'symbol', 'start_date', 'end_date', 'initial_capital']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'缺少必要参数: {field}'}), 400
+
+        strategy_type = data['strategy_type']
+        symbol = data['symbol']
+        start_date = data['start_date']
+        end_date = data['end_date']
+        initial_capital = data['initial_capital']
+        params = data.get('params', {})
+
+        # 记录审计日志
+        user_manager.log_audit(request.user_id, 'backtest_run', f"{strategy_type}:{symbol}", 'start', request)
+
+        # 运行回测
+        result = run_backtest(
+            strategy_type=strategy_type,
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            initial_capital=initial_capital,
+            params=params
+        )
+
+        user_manager.log_audit(request.user_id, 'backtest_run', f"{strategy_type}:{symbol}", 'success', request)
+
+        return jsonify({
+            'backtest_id': result.get('backtest_id'),
+            'metrics': result.get('metrics'),
+            'trades': result.get('trades', []),
+            'equity_curve': result.get('equity_curve', [])
+        })
+
+    except Exception as e:
+        user_manager.log_audit(request.user_id, 'backtest_run', 'error', 'error', request)
+        return jsonify({'error': f'回测异常: {str(e)}'}), 500
+
+
+@app.route('/api/backtest/results', methods=['GET'])
+@require_auth
+def api_backtest_results():
+    """获取回测结果列表"""
+    try:
+        # 这里可以从数据库获取历史回测记录
+        # 暂时返回空列表
+        return jsonify({
+            'backtests': []
+        })
+    except Exception as e:
+        return jsonify({'error': f'获取回测结果失败: {str(e)}'}), 500
+
+
+@app.route('/api/backtest/report/<backtest_id>', methods=['GET'])
+@require_auth
+def api_backtest_report(backtest_id):
+    """获取详细回测报告"""
+    try:
+        # 这里可以从数据库获取详细回测报告
+        # 暂时返回模拟数据
+        return jsonify({
+            'backtest_id': backtest_id,
+            'report': {}
+        })
+    except Exception as e:
+        return jsonify({'error': f'获取回测报告失败: {str(e)}'}), 500
+
+
+def run_backtest(strategy_type, symbol, start_date, end_date, initial_capital, params):
+    """
+    运行策略回测
+
+    Args:
+        strategy_type: 策略类型
+        symbol: 股票代码
+        start_date: 起始日期
+        end_date: 结束日期
+        initial_capital: 初始资金
+        params: 策略参数
+
+    Returns:
+        回测结果字典
+    """
+    import random
+    from datetime import datetime, timedelta
+
+    # 生成模拟历史数据
+    start = datetime.strptime(start_date, '%Y-%m-%d')
+    end = datetime.strptime(end_date, '%Y-%m-%d')
+    days = (end - start).days
+
+    # 生成价格序列（模拟）
+    base_price = 10.0
+    prices = []
+    dates = []
+
+    current_price = base_price
+    for i in range(days):
+        date = start + timedelta(days=i)
+        # 跳过周末
+        if date.weekday() < 5:
+            change = (random.random() - 0.5) * 0.04  # ±2%日波动
+            current_price = current_price * (1 + change)
+            prices.append(current_price)
+            dates.append(date.strftime('%Y-%m-%d'))
+
+    # 执行策略
+    trades = []
+    cash = initial_capital
+    position = 0
+    trade_count = 0
+    win_count = 0
+
+    if strategy_type == 'ma_cross':
+        short_period = params.get('short_ma', 5)
+        long_period = params.get('long_ma', 20)
+
+        # 计算移动平均线
+        short_ma = []
+        long_ma = []
+
+        for i in range(len(prices)):
+            if i >= short_period - 1:
+                short_ma.append(sum(prices[i-short_period+1:i+1]) / short_period)
+            else:
+                short_ma.append(None)
+
+            if i >= long_period - 1:
+                long_ma.append(sum(prices[i-long_period+1:i+1]) / long_period)
+            else:
+                long_ma.append(None)
+
+        # 生成交易信号
+        for i in range(1, len(prices)):
+            if short_ma[i] and long_ma[i] and short_ma[i-1] and long_ma[i-1]:
+                # 金叉买入
+                if short_ma[i-1] <= long_ma[i-1] and short_ma[i] > long_ma[i]:
+                    if position == 0:
+                        buy_price = prices[i]
+                        volume = int(cash / buy_price / 100) * 100  # 整手
+                        if volume > 0:
+                            trades.append({
+                                'date': dates[i],
+                                'direction': 'BUY',
+                                'price': buy_price,
+                                'volume': volume
+                            })
+                            position = volume
+                            cash -= volume * buy_price
+                            trade_count += 1
+
+                # 死叉卖出
+                elif short_ma[i-1] >= long_ma[i-1] and short_ma[i] < long_ma[i]:
+                    if position > 0:
+                        sell_price = prices[i]
+                        trades.append({
+                            'date': dates[i],
+                            'direction': 'SELL',
+                            'price': sell_price,
+                            'volume': position
+                        })
+                        # 计算盈亏
+                        last_buy = [t for t in trades if t['direction'] == 'BUY'][-1]
+                        if sell_price > last_buy['price']:
+                            win_count += 1
+                        cash += position * sell_price
+                        position = 0
+                        trade_count += 1
+
+    # 计算最终资产
+    final_value = cash + position * prices[-1] if prices else initial_capital
+    total_return = (final_value / initial_capital) - 1
+
+    # 计算年化收益率
+    years = days / 365
+    annual_return = ((final_value / initial_capital) ** (1 / years)) - 1 if years > 0 else 0
+
+    # 计算最大回撤
+    peak = initial_capital
+    max_drawdown = 0
+    equity_value = initial_capital
+
+    equity_curve = []
+    for i, price in enumerate(prices):
+        if i < len(trades):
+            equity_value = cash + position * price
+        equity_curve.append({
+            'date': dates[i],
+            'equity': equity_value
+        })
+
+        if equity_value > peak:
+            peak = equity_value
+        drawdown = (peak - equity_value) / peak
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+
+    # 计算夏普比率（简化版）
+    if trade_count > 0:
+        sharpe_ratio = (annual_return - 0.03) / 0.15  # 假设无风险利率3%，波动率15%
+    else:
+        sharpe_ratio = 0
+
+    # 胜率
+    win_rate = win_count / (trade_count / 2) if trade_count > 0 else 0
+
+    return {
+        'backtest_id': f"BT_{int(datetime.now().timestamp())}",
+        'metrics': {
+            'total_return': total_return,
+            'annual_return': annual_return,
+            'max_drawdown': max_drawdown,
+            'sharpe_ratio': sharpe_ratio,
+            'win_rate': win_rate,
+            'trade_count': trade_count
+        },
+        'trades': trades,
+        'equity_curve': equity_curve
+    }
+
+
 # -------------------------- 交易统计 --------------------------
 
 @app.route('/api/stats', methods=['GET'])

@@ -515,6 +515,9 @@
                 <button class="plugin-tab" onclick="switchTab('orders')">
                     <i class="fas fa-list me-1"></i>订单
                 </button>
+                <button class="plugin-tab" onclick="switchTab('backtest')">
+                    <i class="fas fa-chart-bar me-1"></i>回测
+                </button>
             </div>
 
             <!-- 账户信息 -->
@@ -615,6 +618,102 @@
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <p>暂无订单</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 回测 -->
+            <div id="tab-backtest" class="tab-content">
+                <!-- 回测设置 -->
+                <div class="info-card">
+                    <h5><i class="fas fa-cog me-2"></i>回测设置</h5>
+                    <form id="backtestForm" onsubmit="runBacktest(event)">
+                        <div class="form-group">
+                            <label class="form-label">策略类型</label>
+                            <select class="form-control" id="strategyType" onchange="updateStrategyParams()">
+                                <option value="ma_cross">均线交叉</option>
+                                <option value="breakout">突破策略</option>
+                                <option value="momentum">动量策略</option>
+                                <option value="custom">自定义</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">股票代码</label>
+                            <input type="text" class="form-control" id="backtestSymbol"
+                                   value="600000" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">起始日期</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">初始资金</label>
+                            <input type="number" class="form-control" id="initialCapital"
+                                   value="1000000" step="10000" min="10000" required>
+                        </div>
+
+                        <!-- 策略参数 -->
+                        <div id="strategyParams">
+                            <div class="form-group">
+                                <label class="form-label">短期均线</label>
+                                <input type="number" class="form-control" id="shortMA"
+                                       value="5" min="1" max="60">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">长期均线</label>
+                                <input type="number" class="form-control" id="longMA"
+                                       value="20" min="1" max="240">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="runBacktestBtn">
+                            <i class="fas fa-play me-2"></i>运行回测
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 回测结果 -->
+                <div id="backtestResults" style="display: none;">
+                    <div class="info-card">
+                        <h5><i class="fas fa-chart-line me-2"></i>绩效指标</h5>
+                        <div class="info-row">
+                            <span class="info-label">总收益率</span>
+                            <span class="info-value" id="totalReturn">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">年化收益率</span>
+                            <span class="info-value" id="annualReturn">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">最大回撤</span>
+                            <span class="info-value" id="maxDrawdown">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">夏普比率</span>
+                            <span class="info-value" id="sharpeRatio">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">胜率</span>
+                            <span class="info-value" id="winRate">--</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">交易次数</span>
+                            <span class="info-value" id="tradeCount">--</span>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h5><i class="fas fa-list me-2"></i>交易记录</h5>
+                        <div id="tradeList" style="max-height: 300px; overflow-y: auto;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1028,6 +1127,160 @@
             }, 3000);
         }
 
+        // ==================== 回测功能 ====================
+        function updateStrategyParams() {
+            const strategyType = document.getElementById('strategyType').value;
+            const paramsDiv = document.getElementById('strategyParams');
+
+            let paramsHtml = '';
+
+            switch(strategyType) {
+                case 'ma_cross':
+                    paramsHtml = `
+                        <div class="form-group">
+                            <label class="form-label">短期均线</label>
+                            <input type="number" class="form-control" id="shortMA" value="5" min="1" max="60">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">长期均线</label>
+                            <input type="number" class="form-control" id="longMA" value="20" min="1" max="240">
+                        </div>
+                    `;
+                    break;
+                case 'breakout':
+                    paramsHtml = `
+                        <div class="form-group">
+                            <label class="form-label">突破周期</label>
+                            <input type="number" class="form-control" id="breakoutPeriod" value="20" min="5" max="120">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">突破幅度(%)</label>
+                            <input type="number" class="form-control" id="breakoutPct" value="2" min="0.1" max="10" step="0.1">
+                        </div>
+                    `;
+                    break;
+                case 'momentum':
+                    paramsHtml = `
+                        <div class="form-group">
+                            <label class="form-label">动量周期</label>
+                            <input type="number" class="form-control" id="momentumPeriod" value="10" min="1" max="60">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">动量阈值</label>
+                            <input type="number" class="form-control" id="momentumThreshold" value="2" min="0.1" max="10" step="0.1">
+                        </div>
+                    `;
+                    break;
+                case 'custom':
+                    paramsHtml = `
+                        <div class="form-group">
+                            <label class="form-label">策略代码</label>
+                            <textarea class="form-control" id="customStrategy" rows="4" placeholder="输入Python策略代码"></textarea>
+                        </div>
+                    `;
+                    break;
+            }
+
+            paramsDiv.innerHTML = paramsHtml;
+        }
+
+        async function runBacktest(event) {
+            event.preventDefault();
+
+            const btn = document.getElementById('runBacktestBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>运行中...';
+
+            try {
+                const formData = {
+                    strategy_type: document.getElementById('strategyType').value,
+                    symbol: document.getElementById('backtestSymbol').value,
+                    start_date: document.getElementById('startDate').value,
+                    end_date: document.getElementById('endDate').value,
+                    initial_capital: parseFloat(document.getElementById('initialCapital').value)
+                };
+
+                // 获取策略参数
+                const strategyType = formData.strategy_type;
+                if (strategyType === 'ma_cross') {
+                    formData.params = {
+                        short_ma: parseInt(document.getElementById('shortMA').value),
+                        long_ma: parseInt(document.getElementById('longMA').value)
+                    };
+                } else if (strategyType === 'breakout') {
+                    formData.params = {
+                        period: parseInt(document.getElementById('breakoutPeriod').value),
+                        breakout_pct: parseFloat(document.getElementById('breakoutPct').value)
+                    };
+                } else if (strategyType === 'momentum') {
+                    formData.params = {
+                        period: parseInt(document.getElementById('momentumPeriod').value),
+                        threshold: parseFloat(document.getElementById('momentumThreshold').value)
+                    };
+                }
+
+                const result = await apiCall('/api/backtest/run', 'POST', formData);
+                displayBacktestResults(result);
+                showToast('回测完成', '回测成功完成', 'success');
+
+            } catch (error) {
+                console.error('回测失败:', error);
+                showToast('回测失败', error.response?.data?.error || '未知错误', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play me-2"></i>运行回测';
+            }
+        }
+
+        function displayBacktestResults(data) {
+            // 显示结果区域
+            document.getElementById('backtestResults').style.display = 'block';
+
+            // 更新绩效指标
+            const metrics = data.metrics || {};
+            document.getElementById('totalReturn').textContent =
+                (metrics.total_return * 100).toFixed(2) + '%';
+            document.getElementById('totalReturn').className =
+                `info-value ${metrics.total_return >= 0 ? 'positive' : 'negative'}`;
+
+            document.getElementById('annualReturn').textContent =
+                (metrics.annual_return * 100).toFixed(2) + '%';
+            document.getElementById('annualReturn').className =
+                `info-value ${metrics.annual_return >= 0 ? 'positive' : 'negative'}`;
+
+            document.getElementById('maxDrawdown').textContent =
+                (metrics.max_drawdown * 100).toFixed(2) + '%';
+            document.getElementById('sharpeRatio').textContent =
+                metrics.sharpe_ratio?.toFixed(2) || '--';
+            document.getElementById('winRate').textContent =
+                (metrics.win_rate * 100).toFixed(2) + '%';
+            document.getElementById('tradeCount').textContent =
+                metrics.trade_count || 0;
+
+            // 显示交易记录
+            const trades = data.trades || [];
+            const tradeList = document.getElementById('tradeList');
+
+            if (trades.length === 0) {
+                tradeList.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无交易记录</p></div>';
+            } else {
+                tradeList.innerHTML = trades.map(trade => `
+                    <div class="list-item">
+                        <div class="list-header">
+                            <span class="list-symbol">${trade.date}</span>
+                            <span class="list-badge ${trade.direction === 'BUY' ? 'long' : 'short'}">
+                                ${trade.direction === 'BUY' ? '买入' : '卖出'}
+                            </span>
+                        </div>
+                        <div class="list-details">
+                            <span>价格: ${trade.price.toFixed(2)}</span>
+                            <span>数量: ${trade.volume}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
         // ==================== 初始化 ====================
         document.addEventListener('DOMContentLoaded', function() {
             connectWebSocket();
@@ -1037,6 +1290,14 @@
             priceInput.addEventListener('input', function() {
                 this.setAttribute('data-user-modified', 'true');
             });
+
+            // 设置默认日期
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setMonth(startDate.getMonth() - 6);
+
+            document.getElementById('endDate').valueAsDate = endDate;
+            document.getElementById('startDate').valueAsDate = startDate;
 
             if (token) {
                 loadAccountData();
