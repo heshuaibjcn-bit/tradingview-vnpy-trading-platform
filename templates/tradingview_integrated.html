@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradingView + vnpy 专业量化平台</title>
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+
+        /* 主容器 */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* TradingView 图表容器 */
+        .chart-container {
+            flex: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        /* vnpy 控制面板 */
+        .control-panel {
+            width: 350px;
+            background: #1e222d;
+            color: #fff;
+            overflow-y: auto;
+            border-left: 2px solid #2a2e39;
+        }
+
+        /* 面板标题 */
+        .panel-header {
+            background: #2a2e39;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 1px solid #363a45;
+        }
+
+        /* 面板区域 */
+        .panel-section {
+            padding: 15px;
+            border-bottom: 1px solid #2a2e39;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            color: #2962ff;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        /* 输入框样式 */
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: #b2b5be;
+            margin-bottom: 5px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 8px;
+            background: #2a2e39;
+            border: 1px solid #363a45;
+            color: #fff;
+            border-radius: 4px;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #2962ff;
+            color: #fff;
+        }
+
+        .btn-success {
+            background: #26a69a;
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: #ef5350;
+            color: #fff;
+        }
+
+        .btn-warning {
+            background: #ffa726;
+            color: #fff;
+        }
+
+        /* 数据显示 */
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2e39;
+            font-size: 13px;
+        }
+
+        .data-label {
+            color: #b2b5be;
+        }
+
+        .data-value {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .data-value.positive {
+            color: #26a69a;
+        }
+
+        .data-value.negative {
+            color: #ef5350;
+        }
+
+        /* 状态指示 */
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-connected {
+            background: #26a69a;
+        }
+
+        .status-disconnected {
+            background: #ef5350;
+        }
+
+        /* 日志区域 */
+        .log-container {
+            height: 150px;
+            background: #2a2e39;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            color: #b2b5be;
+        }
+
+        .log-item {
+            margin-bottom: 5px;
+        }
+
+        /* 浮动控制按钮 */
+        .floating-controls {
+            position: absolute;
+            top: 10px;
+            right: 360px;
+            z-index: 1000;
+        }
+
+        .float-btn {
+            background: #2962ff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- TradingView 图表 -->
+        <div class="chart-container">
+            <div id="tradingview_widget" style="width:100%; height:100%;"></div>
+        </div>
+
+        <!-- vnpy 控制面板 -->
+        <div class="control-panel">
+            <div class="panel-header">
+                <span class="status-indicator status-disconnected" id="status"></span>
+                vnpy 交易面板
+            </div>
+
+            <!-- 连接配置 -->
+            <div class="panel-section">
+                <div class="panel-title">📡 连接配置</div>
+                <div class="input-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" placeholder="东财账号">
+                </div>
+                <div class="input-group">
+                    <label>密码</label>
+                    <input type="password" id="password" placeholder="密码">
+                </div>
+                <div class="input-group">
+                    <label>Cookie</label>
+                    <input type="text" id="cookie" placeholder="Cookie (推荐)">
+                </div>
+                <button class="btn btn-primary" onclick="connectGateway()">连接网关</button>
+            </div>
+
+            <!-- 快速下单 -->
+            <div class="panel-section">
+                <div class="panel-title">📈 快速下单</div>
+                <div class="input-group">
+                    <label>股票代码</label>
+                    <input type="text" id="symbol" value="600000" placeholder="如: 600000">
+                </div>
+                <div class="input-group">
+                    <label>交易所</label>
+                    <select id="exchange">
+                        <option value="SSE">上交所 (SSE)</option>
+                        <option value="SZSE">深交所 (SZSE)</option>
+                        <option value="BSE">北交所 (BSE)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>价格</label>
+                    <input type="number" id="price" step="0.01" placeholder="价格">
+                </div>
+                <div class="input-group">
+                    <label>数量 (股)</label>
+                    <input type="number" id="volume" value="100" placeholder="数量">
+                </div>
+                <button class="btn btn-success" onclick="sendOrder('buy')">买入</button>
+                <button class="btn btn-danger" onclick="sendOrder('sell')">卖出</button>
+            </div>
+
+            <!-- 账户信息 -->
+            <div class="panel-section">
+                <div class="panel-title">💰 账户信息</div>
+                <div id="account-info">
+                    <div class="data-item">
+                        <span class="data-label">余额</span>
+                        <span class="data-value">--</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">可用</span>
+                        <span class="data-value">--</span>
+                    </div>
+                </div>
+                <button class="btn btn-warning" onclick="refreshData()">刷新数据</button>
+            </div>
+
+            <!-- 持仓信息 -->
+            <div class="panel-section">
+                <div class="panel-title">📊 持仓信息</div>
+                <div id="position-info">
+                    <p style="color: #b2b5be; text-align: center;">暂无持仓</p>
+                </div>
+            </div>
+
+            <!-- 订单信息 -->
+            <div class="panel-section">
+                <div class="panel-title">📋 订单信息</div>
+                <div id="order-info" style="max-height: 150px; overflow-y: auto;">
+                    <p style="color: #b2b5be; text-align: center;">暂无订单</p>
+                </div>
+            </div>
+
+            <!-- 系统日志 -->
+            <div class="panel-section">
+                <div class="panel-title">📝 系统日志</div>
+                <div class="log-container" id="logs"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 全局变量 ====================
+        let socket = null;
+        let tvWidget = null;
+
+        // ==================== 初始化 ====================
+        window.onload = function() {
+            initTradingView();
+            initWebSocket();
+            addLog('系统启动成功', 'info');
+            addLog('等待连接 vnpy...', 'info');
+        };
+
+        // ==================== TradingView 初始化 ====================
+        function initTradingView() {
+            // 获取当前股票代码
+            const symbol = document.getElementById('symbol').value;
+
+            tvWidget = new TradingView.widget({
+                "width": "100%",
+                "height": "100%",
+                "symbol": "SSE:" + symbol,
+                "interval": "D",
+                "timezone": "Asia/Shanghai",
+                "theme": "dark",
+                "style": "1",
+                "locale": "zh_CN",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "container_id": "tradingview_widget",
+                "details": true,
+                "hotlist": true,
+                "calendar": true,
+                "studies": [
+                    "MASimple@tv-basicstudies",
+                    "RSI@tv-basicstudies",
+                    "MACD@tv-basicstudies"
+                ]
+            });
+
+            addLog('TradingView 图表已加载', 'success');
+        }
+
+        // ==================== WebSocket 初始化 ====================
+        function initWebSocket() {
+            socket = io('http://localhost:5000');
+
+            socket.on('connect', function() {
+                addLog('已连接到服务器', 'success');
+                updateStatus(true);
+            });
+
+            socket.on('disconnect', function() {
+                addLog('与服务器断开连接', 'error');
+                updateStatus(false);
+            });
+
+            socket.on('tick', function(data) {
+                addLog(`Tick: ${data.symbol} @ ${data.last_price}`, 'info');
+            });
+
+            socket.on('trade', function(data) {
+                addLog(`成交: ${data.symbol} ${data.volume}股 @ ${data.price}`, 'success');
+                refreshData();
+            });
+
+            socket.on('order', function(data) {
+                addLog(`订单: ${data.orderid} - ${data.status}`, 'info');
+                refreshData();
+            });
+
+            socket.on('account', function(data) {
+                updateAccount(data.accounts);
+            });
+
+            socket.on('position', function(data) {
+                updatePosition(data.positions);
+            });
+
+            socket.on('orders', function(data) {
+                updateOrders(data.orders);
+            });
+        }
+
+        // ==================== API 调用 ====================
+        async function apiCall(url, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                };
+
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(url, options);
+                return await response.json();
+            } catch (error) {
+                addLog(`API 调用失败: ${error}`, 'error');
+                return null;
+            }
+        }
+
+        // ==================== 功能函数 ====================
+        async function connectGateway() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const cookie = document.getElementById('cookie').value;
+
+            if (!cookie && !username) {
+                addLog('请填写配置信息', 'error');
+                return;
+            }
+
+            addLog('正在连接网关...', 'info');
+
+            const result = await apiCall('/api/connect', 'POST', {
+                username: username,
+                password: password,
+                cookie: cookie
+            });
+
+            if (result && result.success) {
+                addLog('网关连接成功!', 'success');
+                refreshData();
+            } else {
+                addLog('网关连接失败: ' + (result?.message || '未知错误'), 'error');
+            }
+        }
+
+        async function sendOrder(direction) {
+            const symbol = document.getElementById('symbol').value;
+            const exchange = document.getElementById('exchange').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const volume = parseInt(document.getElementById('volume').value);
+
+            if (!symbol || !price || !volume) {
+                addLog('请填写完整的订单信息', 'error');
+                return;
+            }
+
+            addLog(`发送${direction === 'buy' ? '买入' : '卖出'}订单: ${symbol} ${volume}股 @ ${price}`, 'info');
+
+            const result = await apiCall('/api/order', 'POST', {
+                symbol: symbol,
+                exchange: exchange,
+                direction: direction.toUpperCase(),
+                type: 'LIMIT',
+                price: price,
+                volume: volume
+            });
+
+            if (result && result.success) {
+                addLog(`订单已发送: ${result.result.orderid}`, 'success');
+            } else {
+                addLog('订单发送失败', 'error');
+            }
+        }
+
+        async function refreshData() {
+            socket.emit('refresh_data');
+            addLog('数据已刷新', 'info');
+        }
+
+        // ==================== UI 更新函数 ====================
+        function updateAccount(accounts) {
+            const container = document.getElementById('account-info');
+            if (accounts && accounts.length > 0) {
+                const acc = accounts[0];
+                container.innerHTML = `
+                    <div class="data-item">
+                        <span class="data-label">余额</span>
+                        <span class="data-value">¥${acc.balance?.toFixed(2) || '0.00'}</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">可用</span>
+                        <span class="data-value">¥${acc.available?.toFixed(2) || '0.00'}</span>
+                    </div>
+                `;
+            }
+        }
+
+        function updatePosition(positions) {
+            const container = document.getElementById('position-info');
+            if (positions && positions.length > 0) {
+                container.innerHTML = positions.map(pos => `
+                    <div class="data-item">
+                        <span class="data-label">${pos.symbol}</span>
+                        <span class="data-value">${pos.volume}股</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="color: #b2b5be; text-align: center;">暂无持仓</p>';
+            }
+        }
+
+        function updateOrders(orders) {
+            const container = document.getElementById('order-info');
+            if (orders && orders.length > 0) {
+                container.innerHTML = orders.map(order => `
+                    <div class="data-item">
+                        <span class="data-label">${order.symbol}</span>
+                        <span class="data-value">${order.direction} ${order.volume}股</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">状态</span>
+                        <span class="data-value">${order.status}</span>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="color: #b2b5be; text-align: center;">暂无订单</p>';
+            }
+        }
+
+        function updateStatus(connected) {
+            const indicator = document.getElementById('status');
+            if (connected) {
+                indicator.classList.remove('status-disconnected');
+                indicator.classList.add('status-connected');
+            } else {
+                indicator.classList.remove('status-connected');
+                indicator.classList.add('status-disconnected');
+            }
+        }
+
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#2962ff',
+                'success': '#26a69a',
+                'error': '#ef5350',
+                'warning': '#ffa726'
+            }[type] || '#2962ff';
+
+            container.innerHTML += `<div class="log-item" style="color: ${color}">[${time}] ${message}</div>`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // ==================== 键盘快捷键 ====================
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                refreshData();
+            }
+        });
+    </script>
+</body>
+</html>

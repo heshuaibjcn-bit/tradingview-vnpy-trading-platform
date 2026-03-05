@@ -1,0 +1,27 @@
+{
+  "gateway_name": "EM",
+  "username": "your_username",
+  "password": "your_password",
+  "cookie": "your_eastmoney_cookie",
+  "note": "请在 vnpy 界面中配置以下信息：",
+  "configuration_steps": [
+    "1. 访问东方财富官网并登录",
+    "2. 获取登录后的 Cookie",
+    "3. 在 vnpy 界面的【系统】->【连接】中配置东财网关",
+    "4. 填入用户名、密码和 Cookie",
+    "5. 点击连接按钮"
+  ],
+  "获取Cookie的方法": [
+    "方法1：浏览器开发者工具",
+    "  - 打开浏览器，访问 eastmoney.com",
+    "  - 按 F12 打开开发者工具",
+    "  - 切换到 Network 标签",
+    "  - 登录后，找到任意请求，查看 Request Headers 中的 Cookie",
+    "",
+    "方法2：使用浏览器插件",
+    "  - 安装 Cookie 导出插件",
+    "  - 登录后导出 eastmoney.com 的 Cookie",
+    "",
+    "注意：Cookie 会过期，需要定期更新"
+  ]
+}
