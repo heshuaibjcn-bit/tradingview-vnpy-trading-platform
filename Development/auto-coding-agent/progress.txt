@@ -1,5 +1,56 @@
 # Progress Log
 
+## 2026-03-09 - Task 11: 前端 - 手动交易
+
+### What was done:
+- Created app/trade/page.tsx - Trade page with server-side authentication
+- Created components/trade/TradeClient.tsx - Main client component with auto-refresh
+- Created components/trade/QuickTradeForm.tsx - Quick buy/sell form
+  - Buy/Sell side selector with color-coded buttons (red/green)
+  - Limit/Market order type selection
+  - Stock code input with auto-uppercase
+  - Price input (for limit orders)
+  - Quantity input with "use all" button for sell orders
+  - Shows available position quantity for sell orders
+  - Estimated amount calculation
+  - Quick sell all button for sell side
+- Created components/trade/ClearAllPositions.tsx - One-click clear all positions
+  - Confirmation dialog with position summary
+  - Shows each position's value and P/L
+  - Warning message about market sell
+  - Submits market sell orders for all positions
+- Created components/trade/BatchOrderForm.tsx - Batch order submission
+  - Multiple order cards with add/remove
+  - Each order: symbol, side, type, price, quantity
+  - Individual order amount calculation
+  - Total estimated amount
+  - Submit all at once
+- Created app/api/trade/order/route.ts - Order submission API
+- Created app/api/market/quote/route.ts - Market quote API (mock data)
+
+### Trade Page Features:
+- Quick trade form with buy/sell toggle
+- Clear all positions with confirmation
+- Batch order submission
+- Today's orders table
+- Auto-refresh every 5 seconds
+- Last update time indicator
+
+### Testing:
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ Trade route registered (/trade)
+- ✅ All API endpoints created
+- ✅ TypeScript types correct
+
+### Notes:
+- Market quote API returns mock data (hash-based price)
+- Orders are created with status "pending"
+- Real order execution will be handled by Python backend
+- Trading password confirmation (step 6) not implemented yet
+
+---
+
 ## 2026-03-09 - Task 10: 前端 - 策略管理
 
 ### What was done:
