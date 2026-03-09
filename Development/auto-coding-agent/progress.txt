@@ -1,5 +1,54 @@
 # Progress Log
 
+## 2026-03-09 - Task 15: 风险控制系统
+
+### What was done:
+- Created Python Risk Management System (risk/)
+  - PositionLimits: Per-position and portfolio exposure limits
+  - TradingLimits: Daily trade count, loss, and turnover limits
+  - StopLossManager: Stop-loss, take-profit, and trailing stop orders
+  - RiskManager: Central risk checking system
+- Risk Control Features:
+  - Max position size and value limits
+  - Max total positions and exposure percentage
+  - Daily trading frequency limits
+  - Daily loss protection
+  - Per-symbol trade limits
+  - Min time between trades
+- Created Next.js risk management page (/risk)
+  - Risk overview dashboard with real-time status
+  - Configurable risk parameters
+  - Color-coded status indicators
+  - Trade pre-check API
+- API endpoints: /api/risk (GET, POST) for config and trade checking
+
+### Python Files:
+- risk/__init__.py
+- risk/limits.py - PositionLimits, TradingLimits, RiskLimit
+- risk/stoploss.py - StopLossManager, StopLossOrder
+- risk/manager.py - RiskManager, RiskCheck
+
+### Next.js Files:
+- app/risk/page.tsx - Risk management page
+- components/risk/RiskClient.tsx - Risk UI with overview and settings tabs
+- api/risk/route.ts - Risk API (config, status, trade check)
+
+### Testing:
+- ✅ Python syntax check passed
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ Risk route registered (/risk)
+- ✅ Mock risk tracking working
+
+### Notes:
+- Position limits: max value per position, max % of capital
+- Trading limits: max daily trades, daily loss limit, turnover limit
+- Stop loss: configurable percentage-based and trailing stops
+- In production, limits would be stored in database per user
+- Trade checking should be called before order execution
+
+---
+
 ## 2026-03-09 - Task 14: 行情监控和提醒
 
 ### What was done:
