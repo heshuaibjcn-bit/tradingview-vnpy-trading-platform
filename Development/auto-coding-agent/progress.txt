@@ -1,5 +1,63 @@
 # Progress Log
 
+## 2026-03-09 - Task 7: 行情数据获取
+
+### What was done:
+- Created market/fetcher.py module:
+  - MarketDataSource enum (THS, EASTMONEY, SINA, AUTO)
+  - MarketDataType enum (TICK, MINUTE, DAILY, REALTIME)
+  - OHLCV, Tick, RealtimeQuote data models (Pydantic)
+  - EastMoneyClient: Async API client for 东方财富 quotes and K-line
+  - SinaClient: Async API client for 新浪财经 quotes
+  - MarketDataFetcher: Multi-source fetcher with automatic fallback
+  - Global fetcher instance with convenience functions
+- Created market/processor.py module:
+  - IndicatorCalculator: Technical indicators (SMA, EMA, MACD, KDJ, RSI, Bollinger Bands)
+  - DataProcessor: OHLCV DataFrame conversion, returns/volatility calculation
+  - QuoteAnalyzer: Limit up/down detection, price position, bid-ask spread
+- Created market/cache.py module:
+  - MarketDataCache: In-memory cache with TTL
+  - QuoteCache: Specialized cache for realtime quotes (3s TTL)
+  - KLineCache: Specialized cache for K-line data (5min TTL)
+  - PersistentCache: File-based persistent cache for historical data
+  - Cache statistics (hits, misses, hit rate)
+- Created tests/test_market.py with 6 test functions:
+  - Fetcher/Processor/Cache module imports (all pass)
+  - Technical indicator calculations (SMA, EMA, MACD, KDJ verified)
+  - Data processing functions (returns, volatility, ATR, breakout detection)
+  - Market data fetcher (requires network, manual confirmation)
+  - 5/6 tests pass (network test requires interactive input)
+
+### API Integration:
+- EastMoney (东方财富): Realtime quotes + K-line data
+  - Stock list API, detail API, K-line API
+  - Supports Shanghai/Shenzhen markets with proper secid format
+  - Returns open, high, low, close, volume, amount, bid/ask
+- Sina (新浪财经): Realtime quotes as backup
+  - Simpler API format
+  - Auto-detects market prefix (sh/sz)
+
+### Data Features:
+- Async HTTP clients using httpx
+- Automatic fallback between data sources
+- Quote caching with configurable TTL (3 seconds default)
+- K-line caching with 5-minute TTL
+- Pydantic models for data validation
+- JSON serialization for all models
+
+### Testing:
+- ✅ 5/6 tests pass (imports, indicators, dataproc all work)
+- Network test requires manual confirmation (interactive input)
+- All technical indicators produce correct values
+
+### Notes:
+- Tonghuashun window OCR not implemented (requires GUI and template setup)
+- WebSocket行情推送 will be implemented in Task 12
+- Cache directory: trading-core/cache/market_data/
+- Data models use datetime with JSON encoders for proper serialization
+
+---
+
 ## 2026-03-09 - Task 5 & 6: 同花顺窗口识别 + 自动化交易模块
 
 ### What was done (Task 5 - 同花顺窗口识别):

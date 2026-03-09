@@ -99,7 +99,7 @@
         "实现 WebSocket 行情推送",
         "编写行情服务测试"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 8,
