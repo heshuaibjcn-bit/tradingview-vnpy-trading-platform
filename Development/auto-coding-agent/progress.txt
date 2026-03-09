@@ -1322,6 +1322,27 @@ Task 4 (用户认证 - 登录页面) 被错误地标记为完成，原因：
 
 ---
 
+## 2026-03-09 - Task 2: Python 环境配置
+
+### What was done:
+- 创建 Python 虚拟环境 venv/
+- 安装所有依赖包（82个包）
+- 验证主要包导入成功（pyautogui, cv2, pandas, supabase, websockets, loguru）
+- .env.example 和 config.py 已在任务1中创建
+
+### Testing:
+- ✅ Python 3.14.0 可用
+- ✅ 虚拟环境创建成功
+- ✅ 所有依赖安装成功
+- ✅ 主要包导入验证通过
+
+### Notes:
+- macOS 系统跳过了 pywin32（仅限 Windows）
+- 虚拟环境路径: trading-core/venv/
+- 激活命令: source venv/bin/activate
+
+---
+
 ## 2026-02-09 - Task: Project infrastructure setup
 
 ### What was done:

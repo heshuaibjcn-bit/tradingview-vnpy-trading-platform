@@ -27,7 +27,7 @@
         "创建 .env.example 配置模板",
         "编写配置管理模块 config.py"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 3,
