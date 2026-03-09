@@ -1,5 +1,53 @@
 # Progress Log
 
+## 2026-03-09 - Task 14: 行情监控和提醒
+
+### What was done:
+- Created Python Alert Engine (alerts/)
+  - AlertRule configuration with 6 alert types
+  - AlertEngine: Monitors market data and triggers alerts
+  - AlertNotifier: Multi-channel notifications (browser, email, sound, webhook)
+  - AlertCondition operators: gt, lt, crosses_above, crosses_below
+- Alert Types:
+  - price_above: Price crosses above threshold
+  - price_below: Price crosses below threshold
+  - price_change: Price change by percentage
+  - volume_spike: Volume spike detection
+  - rsi_overbought: RSI exceeds threshold
+  - rsi_oversold: RSI below threshold
+- Created Next.js alerts page (/alerts)
+  - Alert rules management (create, delete, toggle)
+  - Alert history with acknowledge functionality
+  - Real-time updates every 30 seconds
+  - Rules and history tabs
+- API endpoints: /api/alerts (GET, POST, PATCH, DELETE)
+
+### Python Files:
+- alerts/__init__.py
+- alerts/engine.py - AlertEngine, AlertRule, Alert, AlertType, AlertCondition
+- alerts/notifier.py - AlertNotifier, NotificationMethod
+
+### Next.js Files:
+- app/alerts/page.tsx - Alerts page
+- components/alerts/AlertsClient.tsx - Alert management UI
+- api/alerts/route.ts - Alerts API
+
+### Testing:
+- ✅ Python syntax check passed
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ Alerts route registered (/alerts)
+- ✅ Mock alert storage working
+
+### Notes:
+- Alert rules stored in memory (demo mode)
+- Email notifications require SMTP configuration
+- Sound alerts require audio file path
+- Webhook support for custom integrations
+- One-time alerts auto-disable after triggering
+
+---
+
 ## 2026-03-09 - Task 13: 回测系统
 
 ### What was done:
