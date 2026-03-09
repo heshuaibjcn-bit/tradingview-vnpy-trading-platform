@@ -18,15 +18,15 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Supabase
-    SUPABASE_URL: str
-    SUPABASE_KEY: str
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
 
     # WebSocket
     WS_PORT: int = 8765
     WS_HOST: str = "localhost"
 
     # Trading
-    TRADING_PASSWORD: str
+    TRADING_PASSWORD: str = ""
     MAX_POSITION_RATIO: float = Field(default=0.3, ge=0, le=1)
     MAX_DAILY_LOSS_RATIO: float = Field(default=0.05, ge=0, le=1)
 

@@ -1,5 +1,70 @@
 # Progress Log
 
+## 2026-03-09 - Task 5 & 6: 同花顺窗口识别 + 自动化交易模块
+
+### What was done (Task 5 - 同花顺窗口识别):
+- Created automation/window.py module:
+  - find_tonghuashun_window() - Find Tonghuashun window (Windows only)
+  - find_all_windows() - List all visible windows
+  - bring_window_to_front() - Bring window to front
+  - screenshot_window() - Screenshot specific window
+  - screenshot_region() - Screenshot screen region (cross-platform)
+  - screenshot_screen() - Screenshot entire screen (cross-platform)
+- Created TemplateMatcher class for UI element detection using OpenCV
+- Created CoordinateManager class for saving/loading element coordinates
+- Added cross-platform support (Windows/macOS/Linux)
+- Created automation/screenshot.py module:
+  - ScreenshotManager class for managing screenshots
+  - save_template(), load_template() for template management
+  - save_test_screenshot(), save_log_screenshot() for organized screenshot storage
+  - crop_region(), draw_rectangle() for screenshot manipulation
+- Created tests/test_window_recognition.py:
+  - 7 test functions covering all window recognition features
+  - Manual region selection for template creation
+  - Template matching tests
+- Created automation/templates/README.md with template creation guidelines
+
+### What was done (Task 6 - 自动化交易模块 - 基础操作):
+- Created automation/trader.py module:
+  - THSTrader class - Main automated trading interface
+  - OrderSide enum (BUY/SELL)
+  - OrderType enum (LIMIT/MARKET)
+  - TradingError exception class
+  - TradingResult class for operation results
+- Implemented trading operations:
+  - connect() - Connect to Tonghuashun window
+  - input_stock_code() - Input stock code with template/coordinate methods
+  - input_price() - Input order price
+  - input_quantity() - Input order quantity
+  - click_buy_button() - Click buy button with confirmation
+  - click_sell_button() - Click sell button with confirmation
+  - click_cancel_button() - Click cancel button
+  - buy() - Complete buy order workflow
+  - sell() - Complete sell order workflow
+  - cancel_order() - Cancel order workflow
+- Added operation logging with screenshots
+- Created tests/test_trader.py with 7 test functions (all passing)
+- Updated automation/__init__.py to export all new classes and functions
+
+### Platform Support:
+- Windows: Full window enumeration and control via Windows API
+- macOS/Linux: Cross-platform screenshot support via PIL ImageGrab
+- Template matching works on all platforms using OpenCV
+
+### Testing:
+- ✅ All trader tests pass (7/7)
+- ✅ Python syntax validation passes
+- ✅ Module imports successful
+
+### Notes:
+- Window finding and control only works on Windows with Tonghuashun running
+- On macOS/Linux, use screenshot_region() for cross-platform automation
+- Screenshot functionality requires GUI environment (no headless mode)
+- Template images need to be created manually using test script
+- Templates should be stored in automation/templates/ directory
+
+---
+
 ## 2026-03-09 - Task 4: 数据库 Schema 设计
 
 ### What was done:
