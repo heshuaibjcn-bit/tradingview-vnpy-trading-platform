@@ -1,6 +1,62 @@
 # Progress Log
 
-## 2026-03-09 - Task 9: 前端 - 仪表盘
+## 2026-03-09 - Task 10: 前端 - 策略管理
+
+### What was done:
+- Created lib/strategies/config.ts - Shared strategy type configurations
+  - STRATEGY_CONFIGS with all 5 strategy types (ma, macd, kdj, breakout, grid)
+  - Each config includes name, description, defaultParams, and paramSchema
+  - Parameter schema includes label, type, default value, min/max constraints
+- Updated components/strategies/StrategyList.tsx:
+  - Display all user strategies with signals
+  - Enable/disable strategy functionality
+  - Delete strategy with confirmation
+  - Show latest trading signal (BUY/SELL with price)
+  - Display strategy parameters
+  - Show monitored symbols
+- Updated components/strategies/CreateStrategyForm.tsx:
+  - Two-step form: select strategy type, then configure parameters
+  - Dynamic parameter inputs based on selected strategy type
+  - Trading symbols input (comma-separated)
+  - Save as draft or enable immediately
+- Updated components/strategies/StrategyStats.tsx:
+  - Total strategies count
+  - Running strategies count
+  - Today's signals count
+  - Pending signals count
+  - Buy/Sell signals count
+- Updated components/strategies/StrategiesClient.tsx:
+  - Main client component with state management
+  - Auto-refresh every 10 seconds (toggleable)
+  - Loading indicator
+  - Integration with all child components
+- Updated app/strategies/page.tsx:
+  - Server-side data fetching with user authentication
+  - Pass initialStrategies to client component
+
+### Strategy Management Features:
+- 5 built-in strategy types with Chinese descriptions
+- Parameter validation (min/max constraints)
+- Enable/disable strategies with one click
+- Delete strategies with confirmation
+- Real-time signal display
+- Auto-refresh data
+- Empty state for no strategies
+
+### Testing:
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ All TypeScript types correct
+- ✅ Strategy route registered (/strategies)
+- ✅ All API endpoints working
+
+### Notes:
+- Strategy editor (StrategyEditor.tsx) exists but not fully integrated
+- Can be extended with more strategy types
+- Signal execution will be handled by Python backend
+- WebSocket integration planned for Task 12
+
+---
 
 ### What was done:
 - Created components/dashboard/DashboardClient.tsx:
