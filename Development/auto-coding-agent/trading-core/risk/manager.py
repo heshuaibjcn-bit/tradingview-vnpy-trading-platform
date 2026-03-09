@@ -5,7 +5,7 @@ Central risk management system that checks all trading decisions
 against risk limits and controls.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 from loguru import logger
 

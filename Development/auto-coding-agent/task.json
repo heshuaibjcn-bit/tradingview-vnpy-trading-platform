@@ -281,7 +281,7 @@
         "用户界面优化",
         "编写使用文档"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }

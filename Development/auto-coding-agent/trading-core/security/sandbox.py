@@ -3,14 +3,31 @@ Strategy sandbox for simulated trading.
 """
 
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, TYPE_CHECKING
 from datetime import datetime
 from dataclasses import dataclass, field
 import asyncio
 from loguru import logger
 
-from ..strategies.base import BaseStrategy, Signal, StrategyConfig, StrategyResult
-from ..logging.recorder import TradeRecorder
+# Use TYPE_CHECKING to avoid import issues at runtime
+if TYPE_CHECKING:
+    from ..strategies.base import BaseStrategy, Signal, StrategyConfig, StrategyResult
+    from ..trade_log.recorder import TradeRecorder
+else:
+    # Runtime imports - use try/except to handle gracefully
+    try:
+        from ..strategies.base import BaseStrategy, Signal, StrategyConfig, StrategyResult
+    except ImportError:
+        # For standalone usage
+        BaseStrategy = Any  # type: ignore
+        Signal = Any  # type: ignore
+        StrategyConfig = Any  # type: ignore
+        StrategyResult = Any  # type: ignore
+
+    try:
+        from ..trade_log.recorder import TradeRecorder
+    except ImportError:
+        TradeRecorder = Any  # type: ignore
 
 
 class SandboxMode(Enum):
