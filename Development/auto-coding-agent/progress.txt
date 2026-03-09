@@ -1,5 +1,59 @@
 # Progress Log
 
+## 2026-03-09 - Task 8: 策略引擎框架
+
+### What was done:
+- Created strategies/base.py module:
+  - BaseStrategy abstract base class with strategy lifecycle methods
+  - StrategyConfig Pydantic model for configuration management
+  - Signal model for trading signals (BUY/SELL/HOLD) with confidence
+  - SignalType enum (BUY, SELL, HOLD)
+  - StrategyStatus enum (IDLE, RUNNING, PAUSED, ERROR)
+  - StrategyResult model for execution results
+  - SimpleSignalGenerator example strategy for testing
+- Created strategies/engine.py module:
+  - StrategyEngine class for managing multiple strategies
+  - StrategyLoader for saving/loading strategy configs to JSON
+  - Signal dispatch system with listeners
+  - Rate limiting for signal generation (10 signals/minute max)
+  - Async execution loop with configurable interval
+- Created strategies/ma_strategy.py module:
+  - MAStrategy (Moving Average crossover strategy)
+  - Generates buy signals on golden cross (short MA crosses above long MA)
+  - Generates sell signals on death cross (short MA crosses below long MA)
+  - Configurable periods (short/long), supports SMA and EMA
+  - Automatic quantity calculation based on price
+  - Confidence calculation based on MA separation
+- Created tests/test_strategies.py with 8 test functions (all pass):
+  - Base/Engine/Config/Signal/MA strategy/Loader all verified
+  - StrategyEngine add/remove/execute functionality verified
+  - Config save/load/delete operations verified
+
+### Strategy Framework Features:
+- Abstract base class for custom strategies
+- Pydantic models for data validation and JSON serialization
+- Async/await support for async operations
+- Signal callback system for event handling
+- Error callback system for error handling
+- Strategy status tracking (idle, running, paused, error)
+- Configurable parameters and risk parameters
+- Multi-symbol support per strategy
+- Strategy enable/disable flags
+
+### Testing:
+- ✅ 8/8 tests pass
+- All core functionality verified
+- MA strategy implementation complete (MACD/KDJ can be added similarly)
+
+### Notes:
+- MA strategy requires network access to K-line data
+- Strategy execution interval: 5 seconds default
+- Rate limit: 10 signals per minute maximum
+- Config files stored in: trading-core/config/strategies/
+- MA strategy example uses default periods: 5/20
+
+---
+
 ## 2026-03-09 - Task 7: 行情数据获取
 
 ### What was done:
