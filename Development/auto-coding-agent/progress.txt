@@ -1,5 +1,60 @@
 # Progress Log
 
+## 2026-03-09 - Task 9: 前端 - 仪表盘
+
+### What was done:
+- Created components/dashboard/DashboardClient.tsx:
+  - Main client component for dashboard with state management
+  - Auto-refresh every 5 seconds for positions and orders
+  - Loading state with spinner animation
+  - Last update time indicator
+- Created components/dashboard/AccountSummary.tsx:
+  - Display total assets (总资产)
+  - Display position cost (持仓成本)
+  - Display profit/loss (总盈亏) with color coding
+  - Display profit/loss ratio (盈亏比例)
+- Created components/dashboard/PositionList.tsx:
+  - Display all user positions
+  - Show symbol, quantity, cost price, current value
+  - Profit/loss per position with trend icon
+  - Empty state when no positions
+- Created components/dashboard/OrderList.tsx:
+  - Display today's orders
+  - Status badges with icons (pending, submitted, partial_filled, filled, cancelled, failed)
+  - Buy/Sell color indicators (red/green)
+  - Show filled quantity and price
+- Created components/dashboard/MarketWatch.tsx:
+  - Real-time market quotes table
+  - Auto-refresh every 3 seconds
+  - Mock data for demo (will integrate with real API in Task 12)
+  - Default symbols: 000001, 000002, 600000, 600036, 600519
+  - Format volume in 万/亿
+- Created API routes:
+  - /api/dashboard/positions - Fetch user positions and portfolio value
+  - /api/dashboard/orders - Fetch today's orders
+
+### Dashboard Features:
+- Responsive grid layout (2 columns on large screens)
+- Real-time data refresh with visual indicator
+- Color-coded profit/loss (green for profit, red for loss)
+- Chinese market convention (red = up, green = down)
+- Empty states for no data
+- Loading states with spinner
+
+### Testing:
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ Dashboard route registered (/dashboard)
+- ✅ All components use proper TypeScript types
+- ✅ Proper React hooks dependencies with useCallback
+
+### Notes:
+- Market data is currently mock data - will be replaced with real WebSocket in Task 12
+- K-line chart components can be added later with a charting library like lightweight-charts
+- Dashboard uses existing database access layers (positions.ts, orders.ts)
+
+---
+
 ## 2026-03-09 - Task 8: 策略引擎框架
 
 ### What was done:

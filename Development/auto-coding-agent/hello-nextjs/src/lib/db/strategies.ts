@@ -75,7 +75,7 @@ export async function getStrategiesWithSignals(userId: string): Promise<(Strateg
   if (error) throw new StrategyError(error.message, 'database_error');
 
   // Map strategy_signals to signals
-  return (data || []).map((item: any) => ({
+  return (data || []).map((item: Strategy & { strategy_signals: StrategySignal[] | null }) => ({
     ...item,
     signals: item.strategy_signals || [],
   }));
