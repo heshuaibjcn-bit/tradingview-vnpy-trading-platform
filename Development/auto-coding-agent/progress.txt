@@ -1,5 +1,56 @@
 # Progress Log
 
+## 2026-03-09 - Task 13: 回测系统
+
+### What was done:
+- Created Python Backtest Framework (backtesting/)
+  - BacktestEngine: Execute strategies on historical data
+  - HistoricalDataFetcher: Fetch/generate historical market data
+  - BacktestMetrics: Calculate performance metrics
+  - Report generator: HTML and JSON reports
+- Built-in strategies:
+  - moving_average_cross_strategy: MA crossover
+  - rsi_strategy: RSI-based entry/exit
+- Created Next.js backtest page (/backtest)
+  - Strategy selection with parameters
+  - Date range picker
+  - Symbol input
+  - Results display with metrics cards
+  - Trade history table
+  - Mock API for testing
+- Performance metrics:
+  - Returns: total, annualized, daily mean/std
+  - Risk: max drawdown, Sharpe ratio, Sortino ratio, Calmar ratio
+  - Trades: win rate, avg profit/loss, profit factor
+  - Holding period, best/worst trades
+
+### Python Files:
+- backtesting/__init__.py
+- backtesting/data.py - HistoricalDataFetcher
+- backtesting/engine.py - BacktestEngine, Trade, BacktestResult
+- backtesting/metrics.py - calculate_metrics, BacktestMetrics
+- backtesting/report.py - generate_report, generate_html_report
+
+### Next.js Files:
+- app/backtest/page.tsx - Backtest page
+- components/backtest/BacktestClient.tsx - Backtest UI
+- api/backtest/route.ts - Backtest API
+
+### Testing:
+- ✅ Python syntax check passed
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ Backtest route registered (/backtest)
+- ✅ Mock results generation working
+
+### Notes:
+- Historical data is currently mock-generated (hash-based random walk)
+- API returns mock results for testing
+- In production, Python backend will execute real backtests
+- Commission rate: 0.03%, Slippage: 0.01%
+
+---
+
 ## 2026-03-09 - Task 12: WebSocket 通信
 
 ### What was done:
