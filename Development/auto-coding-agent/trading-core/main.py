@@ -5,18 +5,30 @@ StockAutoTrader - Python Trading Core
 
 import asyncio
 import sys
+import signal
 from pathlib import Path
 from loguru import logger
 
-from config import settings
-from websocket.server import start_websocket_server
+from config.settings import get_settings
+from websocket import start_server, stop_server, get_server
 from strategies.engine import StrategyEngine
 from market.fetcher import MarketDataFetcher
-from risk import RiskController
+
+
+# Global flag for shutdown
+_shutdown_event = asyncio.Event()
+
+
+def handle_shutdown(signum, frame):
+    """Handle shutdown signal."""
+    logger.info(f"Received signal {signum}, initiating shutdown...")
+    _shutdown_event.set()
 
 
 async def main():
     """主程序入口"""
+    settings = get_settings()
+
     # 配置日志
     logger.remove()
     logger.add(
@@ -32,41 +44,42 @@ async def main():
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}"
     )
 
-    logger.info(f"🚀 Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+    logger.info(f"🚀 Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"📝 Log level: {settings.LOG_LEVEL}")
 
     # 初始化核心模块
-    risk_controller = RiskController()
     market_fetcher = MarketDataFetcher()
-    strategy_engine = StrategyEngine(
-        risk_controller=risk_controller,
-        market_fetcher=market_fetcher
-    )
 
     # 启动 WebSocket 服务器
-    logger.info(f"🔌 Starting WebSocket server on {settings.WS_HOST}:{settings.WS_PORT}")
-    ws_server = await start_websocket_server(
-        strategy_engine=strategy_engine,
-        market_fetcher=market_fetcher,
-        risk_controller=risk_controller
+    logger.info(f"🔌 Starting WebSocket server on {settings.ws_host}:{settings.ws_port}")
+    ws_server = await start_server(
+        host=settings.ws_host,
+        port=settings.ws_port
     )
 
-    # 启动策略引擎
-    if settings.ENABLE_RISK_CONTROL:
-        logger.info("✅ Risk control enabled")
-    else:
-        logger.warning("⚠️  Risk control DISABLED")
+    # 初始化策略引擎
+    strategy_engine = StrategyEngine(market_fetcher=market_fetcher)
+
+    # 注册信号监听器
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, handle_shutdown)
 
     logger.info("✅ System ready")
+    logger.info(f"✅ WebSocket server running on ws://{settings.ws_host}:{settings.ws_port}")
     logger.info("Press Ctrl+C to stop")
 
+    # 启动策略引擎
+    strategy_engine.start()
+
     try:
-        # 保持运行
-        await ws_server.wait_closed()
-    except KeyboardInterrupt:
+        # 等待关闭信号
+        await _shutdown_event.wait()
+    except asyncio.CancelledError:
+        pass
+    finally:
         logger.info("🛑 Shutting down...")
         strategy_engine.stop()
-        await ws_server.close()
+        await stop_server()
         logger.info("✅ Shutdown complete")
 
 

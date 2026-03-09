@@ -1,5 +1,57 @@
 # Progress Log
 
+## 2026-03-09 - Task 12: WebSocket 通信
+
+### What was done:
+- Created Python WebSocket Server (websocket/server.py)
+  - WebSocketServer class with client management
+  - Message types: market_quote, order_update, position_update, strategy_signal, alert_triggered
+  - Broadcast methods for all message types
+  - Client registration/unregistration
+  - Ping/pong support
+  - Subscription handling
+- Updated main.py to start WebSocket server
+- Updated Next.js WebSocket client (lib/websocket.ts)
+  - Strongly typed message interfaces
+  - Type guard functions for message types
+  - Auto-reconnect on disconnect
+  - Message queue for offline messages
+  - subscribe() and ping() helper methods
+- Created WebSocket tests (tests/test_websocket.py)
+
+### Python Server Features:
+- Client connection management (register/unregister)
+- Broadcast to all connected clients
+- Market quote streaming (symbol, price, change, volume, high, low)
+- Order updates (status, filled quantity)
+- Position updates (profit/loss calculation)
+- Strategy signals (BUY/SELL/HOLD with confidence)
+- Alert notifications (triggered_at timestamp)
+
+### Next.js Client Features:
+- useWebSocket hook with type-safe callbacks
+- onMarketQuote, onOrderUpdate, onPositionUpdate, onStrategySignal, onAlert handlers
+- Connection status tracking (connecting/connected/disconnected/error)
+- Auto-reconnect with configurable attempts and interval
+- Message queuing when disconnected
+- subscribe(symbols) for market data subscription
+- ping() for connection health check
+
+### Testing:
+- ✅ Python syntax check passed
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ TypeScript types correct
+- ✅ Message types match between Python and Next.js
+
+### Notes:
+- Server defaults to ws://127.0.0.1:8765
+- Client will auto-reconnect up to 5 times with 3s interval
+- All messages include ISO timestamp
+- Server sends welcome message on connection
+
+---
+
 ## 2026-03-09 - Task 11: 前端 - 手动交易
 
 ### What was done:
