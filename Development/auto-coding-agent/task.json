@@ -40,7 +40,7 @@
         "创建基础布局组件",
         "配置路由结构"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 4,
@@ -56,7 +56,7 @@
         "编写 SQL migration 文件",
         "配置 Supabase"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 5,
