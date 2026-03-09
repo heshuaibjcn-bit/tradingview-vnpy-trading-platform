@@ -1,5 +1,56 @@
 # Progress Log
 
+## 2026-03-09 - Task 17: 系统监控和诊断
+
+### What was done:
+- Created Python System Monitoring (monitoring/)
+  - HealthChecker: Monitors health of various system services
+  - SystemLogger: Centralized system logger with buffering
+  - SystemMonitor: Main monitor with auto-recovery capabilities
+  - AlertRule: Rule-based alerting system
+- Monitoring Features:
+  - Service health checks (WebSocket, Market Data, Strategy Engine, THS Client, Database, Alert Engine)
+  - System resource monitoring (CPU, Memory, Disk)
+  - Auto-recovery actions for failed services
+  - Alert rules with cooldown periods
+  - In-memory log buffering with file persistence
+- Created Next.js system page (/system)
+  - System overview with quick stats
+  - Service status table with restart capability
+  - Log viewer with filtering (all, warning, error)
+  - System resource monitors with progress bars
+- API endpoints: /api/health (GET, POST) for health status and service control
+
+### Python Files:
+- monitoring/__init__.py
+- monitoring/models.py - ServiceStatus, HealthStatus, LogEntry, AlertRule
+- monitoring/health.py - HealthChecker with default health checks
+- monitoring/logger.py - SystemLogger with buffered logging
+- monitoring/monitor.py - SystemMonitor with auto-recovery
+
+### Next.js Files:
+- app/system/page.tsx - System monitoring page
+- components/system/SystemClient.tsx - 4 tabs (overview, services, logs, system resources)
+- api/health/route.ts - Health API with mock data
+- components/layout/Header.tsx - Added system monitoring link
+
+### Testing:
+- ✅ Python syntax check passed
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ System route registered (/system)
+- ✅ Mock health data and system info working
+
+### Notes:
+- Health checks run every 30 seconds by default
+- Services can be restarted from the UI
+- Logs are filtered by level (info, warning, error, critical)
+- System resources displayed with visual progress bars
+- Auto-recovery actions can be registered per service
+- Alert rules support custom conditions with cooldown
+
+---
+
 ## 2026-03-09 - Task 16: 交易日志和分析
 
 ### What was done:
