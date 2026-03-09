@@ -1,5 +1,58 @@
 # Progress Log
 
+## 2026-03-09 - Task 16: 交易日志和分析
+
+### What was done:
+- Created Python Trading Logger (logging/)
+  - TradeRecorder: Records all trading operations to file and memory
+  - SignalRecorder: Records strategy signals for analysis
+  - TradeAnalyzer: Calculates trading statistics and performance metrics
+  - ReportGenerator: Generates daily/weekly/monthly reports (JSON + HTML)
+- Logging Features:
+  - Trade logging with user, symbol, side, quantity, price, commission
+  - Operation logging for all system events
+  - Signal logging with confidence and execution status
+  - Equity curve calculation
+  - Performance metrics: win rate, profit factor, Sharpe ratio, max drawdown
+  - Per-symbol statistics
+- Created Next.js logs page (/logs)
+  - Trade records table with filtering
+  - Strategy signals table with execution status
+  - Statistical analysis dashboard
+  - Interactive equity curve chart (Canvas)
+  - Export functionality
+- API endpoints: /api/logs with statistics and equity_curve actions
+
+### Python Files:
+- logging/__init__.py
+- logging/models.py - TradeLog, SignalLog, OperationLog, OperationType
+- logging/recorder.py - TradeRecorder, SignalRecorder
+- logging/analyzer.py - TradeAnalyzer, TradingStatistics, PerformanceMetrics
+- logging/reports.py - ReportGenerator, ReportPeriod, TradingReport
+
+### Next.js Files:
+- app/logs/page.tsx - Trading logs page
+- components/logs/LogsClient.tsx - Logs UI with 4 tabs (trades, signals, analysis, equity)
+- api/logs/route.ts - Logs API with mock data generation
+
+### Testing:
+- ✅ Python syntax check passed
+- ✅ npm run lint 通过
+- ✅ npm run build 构建成功
+- ✅ Logs route registered (/logs)
+- ✅ Mock trade and signal data working
+- ✅ Equity curve chart rendering
+
+### Notes:
+- Mock data generation for demonstration
+- Logs stored in daily files (trades_YYYY-MM-DD.log)
+- Equity curve drawn on HTML5 Canvas
+- Performance metrics include Sharpe ratio calculation
+- Reports can be generated as JSON or HTML
+- In production, logs would be stored in database
+
+---
+
 ## 2026-03-09 - Task 15: 风险控制系统
 
 ### What was done:

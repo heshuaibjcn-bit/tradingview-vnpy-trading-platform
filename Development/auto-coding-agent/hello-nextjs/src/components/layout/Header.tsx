@@ -23,6 +23,7 @@ export function Header({ user }: HeaderProps) {
         { href: "/dashboard", label: "仪表盘" },
         { href: "/strategies", label: "策略管理" },
         { href: "/trade", label: "手动交易" },
+        { href: "/logs", label: "交易日志" },
       ]
     : [{ href: "/", label: "首页" }];
 
