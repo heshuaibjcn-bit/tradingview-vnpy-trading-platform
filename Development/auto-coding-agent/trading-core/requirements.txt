@@ -22,6 +22,9 @@ asyncpg>=0.29.0
 # HTTP/API
 requests>=2.31.0
 aiohttp>=3.9.0
+httpx>=0.25.0
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
 
 # OCR (for reading stock data from screen)
 pytesseract>=0.3.10
