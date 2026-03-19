@@ -60,3 +60,22 @@ __all__ = [
 ]
 
 __version__ = "1.0.0"
+
+# Dynamic agents support
+from .dynamic import (
+    DynamicAgentManager,
+    AgentTemplate,
+    DynamicAgentConfig,
+    AgentRegistrationResult,
+    get_dynamic_agent_manager,
+    init_dynamic_agent_manager,
+)
+
+__all__.extend([
+    "DynamicAgentManager",
+    "AgentTemplate",
+    "DynamicAgentConfig",
+    "AgentRegistrationResult",
+    "get_dynamic_agent_manager",
+    "init_dynamic_agent_manager",
+])

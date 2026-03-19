@@ -14,7 +14,7 @@
 - [x] Task 23: 性能监控系统 ✅
 - [x] Task 24: 策略热加载 ✅
 - [x] Task 25: 配置热更新 ✅
-- [ ] Task 26: 动态Agent注册
+- [x] Task 26: 动态Agent注册 ✅
 - [ ] Task 27: 消息批处理优化
 - [ ] Task 28: 异步并发优化
 - [ ] Task 29: 缓存优化
@@ -537,5 +537,141 @@ curl -X POST "http://localhost:8000/api/config/reload/toggle"
 - 变更历史限制100条记录
 - 自动重载可动态开关
 - 支持编程式配置更新
+
+---
+
+---
+
+## 2026-03-19 - Task 26: 动态Agent注册 ✅
+
+### What was done:
+实现运行时动态添加和移除Agent:
+
+1. **动态Agent管理器** (agents/dynamic.py):
+   - ✅ DynamicAgentManager - 核心管理器
+   - ✅ AgentTemplate - Agent模板定义
+   - ✅ DynamicAgentConfig - 动态Agent配置
+   - ✅ AgentRegistrationResult - 注册结果
+   - ✅ 模板注册和加载
+   - ✅ 动态类导入
+   - ✅ 依赖关系解析
+   - ✅ 生命周期管理
+   - ✅ 配置持久化
+
+2. **功能特性**:
+   - ✅ Agent模板系统(可复用Agent定义)
+   - ✅ 运行时动态加载Agent类
+   - ✅ 依赖关系检查
+   - ✅ 自动/手动启动控制
+   - ✅ 配置文件持久化
+   - ✅ 注册历史记录
+
+3. **REST API** (api/dynamic_agents.py):
+   - ✅ GET /api/dynamic-agents/templates - 获取所有模板
+   - ✅ GET /api/dynamic-agents/templates/{id} - 获取模板详情
+   - ✅ POST /api/dynamic-agents/templates - 创建模板
+   - ✅ DELETE /api/dynamic-agents/templates/{id} - 删除模板
+   - ✅ POST /api/dynamic-agents/register - 注册Agent
+   - ✅ DELETE /api/dynamic-agents/{id} - 注销Agent
+   - ✅ GET /api/dynamic-agents/agents - 获取动态Agent列表
+   - ✅ GET /api/dynamic-agents/history - 注册历史
+   - ✅ GET /api/dynamic-agents/status - 管理器状态
+
+### Files Created:
+- agents/dynamic.py - 动态Agent管理器
+- api/dynamic_agents.py - 动态Agent REST API
+
+### Files Modified:
+- api_server.py - 集成dynamic_agents路由
+- agents/__init__.py - 导出动态Agent组件
+
+### Dynamic Agent Features:
+1. **模板系统**: 定义可复用Agent模板
+2. **动态加载**: 运行时导入Agent类
+3. **依赖管理**: 检查Agent依赖关系
+4. **生命周期**: 完整的注册/注销流程
+5. **配置持久化**: JSON配置文件存储
+6. **历史追踪**: 注册/注销操作记录
+
+### Template Structure:
+```json
+{
+  "template_id": "custom_fetcher",
+  "name": "Custom Market Fetcher",
+  "description": "Custom market data fetcher",
+  "agent_class_path": "agents.market_agent.MarketDataAgent",
+  "default_config": {
+    "update_interval": 1.0,
+    "symbols": ["000001"]
+  },
+  "dependencies": [],
+  "parameters_schema": {
+    "update_interval": {"type": "number"},
+    "symbols": {"type": "array"}
+  }
+}
+```
+
+### API Usage:
+```bash
+# 创建Agent模板
+curl -X POST "http://localhost:8000/api/dynamic-agents/templates" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template_id": "custom_fetcher",
+    "name": "Custom Market Fetcher",
+    "description": "Custom market data fetcher",
+    "agent_class_path": "agents.market_agent.MarketDataAgent",
+    "default_config": {
+      "update_interval": 1.0,
+      "symbols": ["000001"]
+    }
+  }'
+
+# 注册Agent
+curl -X POST "http://localhost:8000/api/dynamic-agents/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_id": "my_custom_fetcher",
+    "template_id": "custom_fetcher",
+    "name": "My Custom Fetcher",
+    "auto_start": true
+  }'
+
+# 获取动态Agent列表
+curl "http://localhost:8000/api/dynamic-agents/agents"
+
+# 注销Agent
+curl -X DELETE "http://localhost:8000/api/dynamic-agents/my_custom_fetcher?force=false"
+
+# 查看注册历史
+curl "http://localhost:8000/api/dynamic-agents/history?agent_id=my_custom_fetcher&limit=20"
+```
+
+### Agent Lifecycle:
+1. 创建模板(定义Agent类和配置)
+2. 注册Agent(从模板创建实例)
+3. 启动Agent(可选自动启动)
+4. 监控运行(集成到主系统)
+5. 注销Agent(停止并移除)
+
+### Configuration Persistence:
+- 模板文件: agents/templates/{template_id}.json
+- Agent配置: agents/dynamic/{agent_id}.json
+- 自动保存所有配置变更
+- 系统重启后自动加载
+
+### Dependency Resolution:
+- 检查依赖Agent是否存在
+- 验证依赖Agent状态
+- 按依赖顺序启动
+- 阻止不满足依赖的注册
+
+### Notes:
+- Agent类必须继承BaseAgent
+- 支持任意Python模块路径
+- 配置自动保存和加载
+- 注册历史限制100条记录
+- 依赖Agent必须运行中
 
 ---
