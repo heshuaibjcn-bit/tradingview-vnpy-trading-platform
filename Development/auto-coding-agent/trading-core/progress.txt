@@ -13,7 +13,7 @@
 - [x] Task 22: 消息持久化优化 ✅
 - [x] Task 23: 性能监控系统 ✅
 - [x] Task 24: 策略热加载 ✅
-- [ ] Task 25: 配置热更新
+- [x] Task 25: 配置热更新 ✅
 - [ ] Task 26: 动态Agent注册
 - [ ] Task 27: 消息批处理优化
 - [ ] Task 28: 异步并发优化
@@ -428,5 +428,114 @@ curl "http://localhost:8000/api/strategies/reload/status"
 - 版本历史存储在内存中
 - 重载历史限制100条记录
 - 自动重载可动态开关
+
+---
+
+---
+
+## 2026-03-19 - Task 25: 配置热更新 ✅
+
+### What was done:
+实现运行时配置动态更新:
+
+1. **配置热加载管理器** (config/hot_reload.py):
+   - ✅ ConfigHotReloadManager - 核心管理器
+   - ✅ ConfigFileWatcher - 文件监控
+   - ✅ ConfigVersion - 配置版本记录
+   - ✅ ConfigChangeResult - 变更结果
+   - ✅ ConfigValidator - 配置验证器
+   - ✅ 自动检测配置变更
+   - ✅ 配置版本管理
+   - ✅ 回滚机制
+
+2. **功能特性**:
+   - ✅ 支持JSON、YAML、TOML格式
+   - ✅ 自动文件监控
+   - ✅ 配置验证(必需字段检查)
+   - ✅ 变更检测(新旧对比)
+   - ✅ 编程更新API
+   - ✅ 版本历史记录
+   - ✅ 回滚支持
+
+3. **REST API** (api/config.py):
+   - ✅ GET /api/config/current - 获取当前配置
+   - ✅ POST /api/config/update - 编程更新配置
+   - ✅ POST /api/config/reload - 从文件重载配置
+   - ✅ GET /api/config/versions - 查看版本历史
+   - ✅ GET /api/config/history - 变更历史
+   - ✅ GET /api/config/status - 管理器状态
+   - ✅ POST /api/config/reload/toggle - 切换自动重载
+   - ✅ POST /api/config/rollback - 回滚配置
+
+4. **支持的配置文件**:
+   - .env
+   - settings.json
+   - settings.yaml / settings.yml
+
+### Files Created:
+- config/hot_reload.py - 配置热加载管理器
+- api/config.py - 配置管理REST API
+
+### Files Modified:
+- api_server.py - 集成config API路由
+- config/__init__.py - 导出热加载组件
+
+### Config Update Features:
+1. **文件监控**: 实时检测配置文件修改
+2. **自动重载**: 修改后自动重载(可配置)
+3. **配置验证**: 检查必需字段
+4. **变更检测**: 精确识别变更字段
+5. **编程更新**: API直接更新配置
+6. **版本管理**: 完整的变更历史
+7. **回滚保护**: 失败自动回滚
+
+### API Usage:
+```bash
+# 获取当前配置
+curl "http://localhost:8000/api/config/current?config_type=general"
+
+# 更新配置
+curl -X POST "http://localhost:8000/api/config/update?config_type=general" \
+  -H "Content-Type: application/json" \
+  -d '{"updates": {"LOG_LEVEL": "DEBUG"}}'
+
+# 从文件重载配置
+curl -X POST "http://localhost:8000/api/config/reload?config_type=general"
+
+# 查看版本历史
+curl "http://localhost:8000/api/config/versions?config_type=general"
+
+# 回滚配置
+curl -X POST "http://localhost:8000/api/config/rollback?config_type=general&version_id=general_20260319123456"
+
+# 查看重载历史
+curl "http://localhost:8000/api/config/history?limit=20"
+
+# 切换自动重载
+curl -X POST "http://localhost:8000/api/config/reload/toggle"
+```
+
+### Version Management:
+每个配置版本包含:
+- version_id: 唯一版本ID
+- config_type: 配置类型
+- file_path: 文件路径
+- file_hash: MD5文件哈希
+- applied_at: 应用时间
+- changes: 变更内容
+- rollback_data: 回滚数据
+
+### Validation:
+- General配置必需字段: app_name, log_level
+- Agent配置必需字段: USE_AGENT_ARCHITECTURE
+- 可扩展的验证规则
+
+### Notes:
+- 2秒防抖避免频繁重载
+- 支持多种配置格式
+- 版本历史存储在内存中
+- 变更历史限制100条记录
+- 自动重载可动态开关
+- 支持编程式配置更新
 
 ---
