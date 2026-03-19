@@ -160,7 +160,7 @@
         "实现自动化性能回归测试",
         "集成CI/CD性能测试"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 31,

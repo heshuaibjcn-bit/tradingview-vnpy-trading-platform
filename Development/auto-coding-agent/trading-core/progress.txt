@@ -1191,3 +1191,141 @@ cache_key({"data": [1, 2, 3]})  # Hashed for consistency
 - 线程安全设计
 - 背景自动清理过期条目
 
+
+---
+
+## 2026-03-19 - Task 30: 性能压力测试 ✅
+
+### What was done:
+实现完整的性能压力测试套件:
+
+1. **压力测试核心系统** (testing/performance/stress_test.py):
+   - ✅ PerformanceMetrics - 性能指标数据类
+   - ✅ LoadGenerator - 负载生成器
+   - ✅ StressTestSuite - 压力测试套件
+   - ✅ 资源监控(CPU、内存)
+   - ✅ 内存泄漏检测
+   - ✅ 自动化测试报告
+
+2. **负载生成器**:
+   - ✅ 恒定负载模式(constant_load)
+   - ✅ 尖峰负载模式(spike_load)
+   - ✅ 可配置RPS(每秒请求数)
+   - ✅ 可配置持续时间
+   - ✅ 资源使用监控
+
+3. **压力测试场景**:
+   - ✅ 消息吞吐量测试
+   - ✅ Agent可扩展性测试
+   - ✅ 内存效率测试
+   - ✅ CPU效率测试
+   - ✅ 长时间稳定性测试(5分钟)
+
+4. **性能指标追踪**:
+   - ✅ 吞吐量(operations/second)
+   - ✅ 平均延迟(avg_latency)
+   - ✅ P95/P99延迟
+   - ✅ CPU使用率
+   - ✅ 内存使用量
+   - ✅ 内存泄漏率(MB/min)
+   - ✅ 错误率
+   - ✅ 成功率
+
+5. **REST API** (api/performance_testing.py):
+   - ✅ POST /api/performance-testing/run - 运行压力测试
+   - ✅ GET /api/performance-testing/results - 获取测试结果列表
+   - ✅ GET /api/performance-testing/results/{id} - 获取特定测试结果
+   - ✅ GET /api/performance-testing/latest - 获取最新测试结果
+   - ✅ GET /api/performance-testing/status - 测试系统状态
+   - ✅ GET /api/performance-testing/benchmarks - 性能基准阈值
+
+6. **测试报告**:
+   - ✅ JSON格式摘要(summary)
+   - ✅ JSON格式详细结果(results)
+   - ✅ 时间戳命名文件
+   - ✅ 自动保存到data/performance_tests/
+
+7. **基准阈值**:
+   - 消息吞吐量: 目标1000 msg/s, 可接受500, 关键100
+   - 平均延迟: 目标10ms, 可接受50ms, 关键100ms
+   - P95延迟: 目标20ms, 可接受100ms, 关键200ms
+   - CPU使用率: 目标50%, 可接受80%, 关键95%
+   - 内存泄漏: 目标0 MB/min, 可接受1, 关键10
+   - 错误率: 目标1%, 可接受5%, 关键10%
+
+### Files Created:
+- testing/performance/stress_test.py - 压力测试核心系统
+- testing/__init__.py - 测试模块导出
+- api/performance_testing.py - 压力测试REST API
+
+### Files Modified:
+- api_server.py - 集成performance_testing API路由
+
+### Stress Test Features:
+1. **负载生成**: 恒定/尖峰负载模式
+2. **资源监控**: CPU/内存实时监控
+3. **内存泄漏检测**: 基于内存增长率检测
+4. **延迟分析**: 平均/P95/P99延迟统计
+5. **自动化报告**: JSON格式自动保存
+6. **后台测试**: 支持长时间后台运行
+7. **基准对比**: 内置性能基准阈值
+
+### Test Scenarios:
+1. **Message Throughput**: 1000 msg/s × 10s
+2. **Agent Scalability**: 100→1000 ops/s ramp-up
+3. **Memory Efficiency**: 内存密集操作×30s
+4. **CPU Efficiency**: 计算密集操作×10s
+5. **Stability**: 正常操作×5分钟
+
+### API Usage:
+```bash
+# 运行快速测试(1分钟)
+curl -X POST "http://localhost:8000/api/performance-testing/run" \
+  -H "Content-Type: application/json" \
+  -d '{"test_type": "quick"}'
+
+# 运行完整测试套件(后台运行)
+curl -X POST "http://localhost:8000/api/performance-testing/run" \
+  -H "Content-Type: application/json" \
+  -d '{"test_type": "full"}'
+
+# 获取最新测试结果
+curl "http://localhost:8000/api/performance-testing/latest"
+
+# 获取测试结果列表
+curl "http://localhost:8000/api/performance-testing/results?limit=10"
+
+# 获取性能基准
+curl "http://localhost:8000/api/performance-testing/benchmarks"
+
+# 获取系统状态
+curl "http://localhost:8000/api/performance-testing/status"
+```
+
+### Performance Metrics:
+- **Throughput**: Operations per second
+- **Latency**: avg/P95/P99 in milliseconds
+- **CPU**: Average CPU usage percentage
+- **Memory**: Peak memory usage in MB
+- **Memory Leak**: Growth rate in MB/min
+- **Errors**: Failed operations count
+- **Success Rate**: Percentage of successful operations
+
+### Memory Leak Detection:
+- 基于tracemalloc追踪
+- 线性回归分析内存趋势
+- 计算MB/min增长率
+- 阈值: <1 MB/min
+
+### Test Output:
+- data/performance_tests/stress_test_summary_YYYYMMDD_HHMMSS.json
+- data/performance_tests/stress_test_results_YYYYMMDD_HHMMSS.json
+
+### Notes:
+- 压力测试用于发现系统瓶颈
+- 内存泄漏检测帮助发现内存问题
+- 长时间测试验证系统稳定性
+- 所有结果自动保存为JSON
+- 支持CI/CD集成
+- 后台测试不阻塞API
+

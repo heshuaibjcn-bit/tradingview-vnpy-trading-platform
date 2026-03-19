@@ -51,6 +51,7 @@ async def lifespan(app: FastAPI):
             from api.batch_processing import router as batch_processing_router
             from api.async_scheduler import router as async_scheduler_router
             from api.cache import router as cache_router
+            from api.performance_testing import router as performance_testing_router
             from agents import TradingAgency
 
             # Create agency instance (will be initialized by main.py)
@@ -64,6 +65,7 @@ async def lifespan(app: FastAPI):
             app.include_router(batch_processing_router)
             app.include_router(async_scheduler_router)
             app.include_router(cache_router)
+            app.include_router(performance_testing_router)
             logger.info("✅ Agent management API enabled")
             logger.info("✅ Message management API enabled")
             logger.info("✅ Performance monitoring API enabled")
@@ -73,6 +75,7 @@ async def lifespan(app: FastAPI):
             logger.info("✅ Batch processing API enabled")
             logger.info("✅ Async scheduler API enabled")
             logger.info("✅ Cache API enabled")
+            logger.info("✅ Performance testing API enabled")
         except ImportError as e:
             logger.warning(f"Could not import agents API: {e}")
 
