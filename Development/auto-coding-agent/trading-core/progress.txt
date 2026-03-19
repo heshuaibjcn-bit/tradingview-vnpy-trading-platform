@@ -12,7 +12,7 @@
 - [x] Task 21: Agent监控仪表板 ✅
 - [x] Task 22: 消息持久化优化 ✅
 - [x] Task 23: 性能监控系统 ✅
-- [ ] Task 24: 策略热加载
+- [x] Task 24: 策略热加载 ✅
 - [ ] Task 25: 配置热更新
 - [ ] Task 26: 动态Agent注册
 - [ ] Task 27: 消息批处理优化
@@ -325,5 +325,108 @@ curl http://localhost:8000/api/performance/status
 - 报告自动保存为JSON和Markdown
 - 所有API支持CORS,便于前端集成
 - 告警支持回调扩展
+
+---
+
+---
+
+## 2026-03-19 - Task 24: 策略热加载 ✅
+
+### What was done:
+实现运行时策略动态加载和更新:
+
+1. **热加载管理器** (strategies/hot_reload.py):
+   - ✅ StrategyHotReloadManager - 核心热加载管理
+   - ✅ StrategyFileWatcher - 文件监控(watchdog)
+   - ✅ StrategyVersion - 策略版本记录
+   - ✅ ReloadResult - 重载结果
+   - ✅ 文件修改自动检测
+   - ✅ 策略状态保存和恢复
+   - ✅ 版本回滚机制
+   - ✅ 重载历史记录
+
+2. **功能特性**:
+   - ✅ 文件监控(使用watchdog库)
+   - ✅ 自动重载(可配置开关)
+   - ✅ 状态保持(参数、持仓、信号)
+   - ✅ 失败回滚(自动恢复旧版本)
+   - ✅ 版本管理(完整历史)
+   - ✅ MD5文件哈希(检测变更)
+
+3. **REST API** (api/strategies.py):
+   - ✅ POST /api/strategies/{id}/reload - 重载策略
+   - ✅ POST /api/strategies/{id}/rollback - 回滚版本
+   - ✅ GET /api/strategies/{id}/versions - 查看版本
+   - ✅ GET /api/strategies/reload/history - 重载历史
+   - ✅ GET /api/strategies/reload/status - 管理器状态
+   - ✅ POST /api/strategies/reload/toggle - 切换自动重载
+
+4. **依赖管理**:
+   - ✅ 添加watchdog>=4.0.0到requirements.txt
+   - ✅ 已安装watchdog库
+
+### Files Created:
+- strategies/hot_reload.py - 热加载管理器
+- api/strategies.py - 策略热加载REST API
+
+### Files Modified:
+- requirements.txt - 添加watchdog和psutil
+- api_server.py - 集成strategies API路由
+- strategies/__init__.py - 导出热加载组件
+
+### Hot Reload Features:
+1. **文件监控**: 实时检测策略文件修改
+2. **自动重载**: 修改后自动重载(可配置)
+3. **状态保持**: 保留策略参数和状态
+4. **版本管理**: 完整的版本历史记录
+5. **回滚机制**: 失败自动回滚到旧版本
+6. **重载API**: 手动触发重载和回滚
+
+### API Usage:
+```bash
+# 重载策略
+curl -X POST "http://localhost:8000/api/strategies/ma_strategy/reload"
+
+# 强制重载(即使文件未改变)
+curl -X POST "http://localhost:8000/api/strategies/ma_strategy/reload?force=true"
+
+# 查看版本历史
+curl "http://localhost:8000/api/strategies/ma_strategy/versions"
+
+# 回滚到特定版本
+curl -X POST "http://localhost:8000/api/strategies/ma_strategy/rollback?version_id=ma_strategy_20260319123456"
+
+# 查看重载历史
+curl "http://localhost:8000/api/strategies/reload/history?limit=20"
+
+# 切换自动重载
+curl -X POST "http://localhost:8000/api/strategies/reload/toggle"
+
+# 查看管理器状态
+curl "http://localhost:8000/api/strategies/reload/status"
+```
+
+### Version Management:
+每个策略包含:
+- version_id: 唯一版本ID
+- file_path: 策略文件路径
+- file_hash: MD5文件哈希
+- loaded_at: 加载时间
+- strategy_class: 策略类名
+- is_active: 是否为活跃版本
+- parameters: 策略参数
+
+### Rollback Protection:
+- 重载失败自动回滚
+- 保留策略完整状态
+- 支持任意版本回滚
+- 回滚失败记录
+
+### Notes:
+- 文件监控使用watchdog库(跨平台支持)
+- 默认1秒防抖避免频繁重载
+- 版本历史存储在内存中
+- 重载历史限制100条记录
+- 自动重载可动态开关
 
 ---
