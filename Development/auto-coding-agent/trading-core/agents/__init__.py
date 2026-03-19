@@ -96,3 +96,26 @@ __all__.extend([
     "BatchMessageBus",
     "create_batch_message_bus",
 ])
+
+# Async scheduler support
+from .async_scheduler import (
+    TaskPriority,
+    PrioritizedTask,
+    ConcurrencyConfig,
+    SchedulerStats,
+    AsyncTaskScheduler,
+    AgentConcurrencyManager,
+    get_global_scheduler,
+    init_global_scheduler,
+)
+
+__all__.extend([
+    "TaskPriority",
+    "PrioritizedTask",
+    "ConcurrencyConfig",
+    "SchedulerStats",
+    "AsyncTaskScheduler",
+    "AgentConcurrencyManager",
+    "get_global_scheduler",
+    "init_global_scheduler",
+])

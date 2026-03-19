@@ -836,3 +836,169 @@ curl "http://localhost:8000/api/batch-processing/immediate-types"
 - 统计信息可重置
 - 支持立即刷新队列
 
+
+---
+
+## 2026-03-19 - Task 28: 异步并发优化 ✅
+
+### What was done:
+优化异步任务调度和并发性能,实现完整的任务调度系统:
+
+1. **异步任务调度器** (agents/async_scheduler.py):
+   - ✅ TaskPriority - 任务优先级枚举(CRITICAL/HIGH/NORMAL/LOW/IDLE)
+   - ✅ PrioritizedTask - 优先级任务数据类
+   - ✅ ConcurrencyConfig - 并发配置类
+   - ✅ SchedulerStats - 调度器统计数据类
+   - ✅ AsyncTaskScheduler - 核心任务调度器
+   - ✅ AgentConcurrencyManager - Agent并发管理器
+   - ✅ 全局调度器实例管理
+
+2. **核心功能**:
+   - ✅ 基于优先级的任务队列(使用堆结构)
+   - ✅ 并发限制控制(Semaphore)
+   - ✅ 任务超时处理
+   - ✅ 任务取消机制
+   - ✅ 性能监控和统计
+   - ✅ 背压管理(队列大小限制)
+   - ✅ Per-Agent并发控制
+   - ✅ 消息速率限制
+
+3. **调度器特性**:
+   - ✅ 5级优先级(CRITICAL > HIGH > NORMAL > LOW > IDLE)
+   - ✅ 可配置并发限制(默认100并发任务)
+   - ✅ 可配置队列大小(默认1000)
+   - ✅ 可配置任务超时(默认30秒)
+   - ✅ 自动队列处理
+   - ✅ 后台监控任务
+
+4. **Agent并发管理**:
+   - ✅ 每Agent并发限制(默认10)
+   - ✅ 消息速率限制(默认1000 msg/s)
+   - ✅ 背压通知
+   - ✅ 统计信息
+
+5. **REST API** (api/async_scheduler.py):
+   - ✅ GET /api/async-scheduler/stats - 获取调度器统计
+   - ✅ GET /api/async-scheduler/config - 获取调度器配置
+   - ✅ POST /api/async-scheduler/config - 更新调度器配置
+   - ✅ POST /api/async-scheduler/reset-stats - 重置统计
+   - ✅ GET /api/async-scheduler/tasks/{id} - 获取任务信息
+   - ✅ DELETE /api/async-scheduler/tasks/{id} - 取消任务
+   - ✅ GET /api/async-scheduler/health - 健康状态
+   - ✅ GET /api/async-scheduler/priorities - 优先级列表
+   - ✅ GET /api/async-scheduler/concurrency - 并发管理器信息
+   - ✅ POST /api/async-scheduler/concurrency/config - 更新并发配置
+
+6. **单元测试** (tests/agents/test_async_scheduler.py):
+   - ✅ TestTaskPriority - 优先级测试
+   - ✅ TestConcurrencyConfig - 配置测试
+   - ✅ TestSchedulerStats - 统计测试
+   - ✅ TestAsyncTaskScheduler - 调度器测试(10个测试)
+   - ✅ TestAgentConcurrencyManager - 并发管理测试(3个测试)
+   - ✅ TestSchedulerPerformance - 性能测试(2个测试)
+   - ✅ 总计19个测试用例
+
+7. **调优指南** (docs/ASYNC_SCHEDULER_TUNING.md):
+   - ✅ 核心概念说明
+   - ✅ 配置参数详解
+   - ✅ 性能调优指南
+   - ✅ 常见场景解决方案
+   - ✅ 监控和告警
+   - ✅ 最佳实践
+   - ✅ 故障排查
+
+8. **系统集成**:
+   - ✅ 更新agents/__init__.py导出调度器组件
+   - ✅ 更新api_server.py集成async_scheduler路由
+
+### Files Created:
+- agents/async_scheduler.py - 异步任务调度器核心系统
+- api/async_scheduler.py - 异步调度器REST API
+- tests/agents/test_async_scheduler.py - 单元测试(19个测试)
+- docs/ASYNC_SCHEDULER_TUNING.md - 调优指南
+
+### Files Modified:
+- agents/__init__.py - 导出调度器组件
+- api_server.py - 集成async_scheduler API路由
+
+### Async Scheduler Features:
+1. **优先级队列**: 5级优先级支持关键任务优先
+2. **并发控制**: 全局和per-Agent两级限制
+3. **超时处理**: 自动超时取消机制
+4. **任务取消**: 支持运行中和队列中任务取消
+5. **性能监控**: 完整的统计和监控
+6. **背压管理**: 队列满时拒绝新任务
+
+### Default Configuration:
+```python
+max_concurrent_tasks = 100      # 最大并发任务
+max_queue_size = 1000           # 最大队列大小
+task_timeout = 30.0             # 任务超时(秒)
+queue_timeout = 5.0             # 队列等待超时
+max_concurrent_per_agent = 10   # 每Agent并发限制
+max_messages_per_second = 1000  # 消息速率限制
+```
+
+### Task Priority Levels:
+| Priority | Value | Use Case |
+|----------|-------|----------|
+| CRITICAL | 0 | Emergency stop, critical errors |
+| HIGH | 1 | Market data updates, trade execution |
+| NORMAL | 2 | Regular operations |
+| LOW | 3 | Background tasks |
+| IDLE | 4 | Maintenance tasks |
+
+### API Usage:
+```bash
+# 获取调度器统计
+curl "http://localhost:8000/api/async-scheduler/stats"
+
+# 获取健康状态
+curl "http://localhost:8000/api/async-scheduler/health"
+
+# 更新配置
+curl -X POST "http://localhost:8000/api/async-scheduler/config" \
+  -H "Content-Type: application/json" \
+  -d '{"max_concurrent_tasks": 200, "max_queue_size": 5000}'
+
+# 取消任务
+curl -X DELETE "http://localhost:8000/api/async-scheduler/task_id"
+
+# 获取并发信息
+curl "http://localhost:8000/api/async-scheduler/concurrency"
+```
+
+### Statistics Tracked:
+- tasks_submitted - 提交的任务数
+- tasks_completed - 完成的任务数
+- tasks_failed - 失败的任务数
+- tasks_cancelled - 取消的任务数
+- tasks_timeout - 超时的任务数
+- current_queue_size - 当前队列大小
+- current_running - 当前运行中的任务数
+- avg_wait_time - 平均等待时间
+- avg_run_time - 平均运行时间
+- success_rate - 成功率
+- priority_distribution - 优先级分布
+
+### Performance Targets:
+- **吞吐量**: >100 tasks/second (可配置)
+- **延迟**: CRITICAL <10ms, HIGH <50ms, NORMAL <200ms
+- **成功率**: >99%
+- **超时率**: <1%
+
+### Concurrency Management:
+- **全局限制**: 最多100个并发任务(可调)
+- **Agent限制**: 每Agent最多10个并发消息(可调)
+- **速率限制**: 每Agent最多1000消息/秒(可调)
+- **背压控制**: 队列满时拒绝新任务
+
+### Notes:
+- 优先级调度确保关键任务优先处理
+- 并发限制防止资源耗尽
+- 超时机制防止任务挂起
+- 任务取消支持优雅停止
+- 完整的监控和统计支持
+- 详细的调优指南文档
+- 支持运行时配置调整
+
