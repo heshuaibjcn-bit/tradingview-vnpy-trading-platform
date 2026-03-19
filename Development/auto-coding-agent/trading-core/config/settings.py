@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     AUTO_CONFIRM: bool = False
     SCREENSHOT_PATH: str = "screenshots"
 
+    # Agent Architecture
+    USE_AGENT_ARCHITECTURE: bool = True  # Feature flag for new agent architecture
+    AGENT_MESSAGE_DB_PATH: str = "data/messages.db"
+    AGENT_MESSAGE_RETENTION_DAYS: int = 30
+    AGENT_HEALTH_CHECK_INTERVAL: float = 30.0
+    AGENT_MESSAGE_HISTORY_SIZE: int = 1000
+    AGENT_ENABLE_PERSISTENCE: bool = True
+
     # Paths
     BASE_DIR: Path = Field(default_factory=lambda: Path(__file__).parent.parent)
 

@@ -1,0 +1,103 @@
+# Trading System v2.0 - Progress Log
+
+## Phase 2: 优化与增强
+
+开始日期: 2026-03-19
+目标: 性能优化、可视化、高级功能、测试增强
+
+---
+
+## 任务列表 (Task 21-36)
+
+- [x] Task 21: Agent监控仪表板 ✅
+- [ ] Task 22: 消息持久化优化
+- [ ] Task 23: 性能监控系统
+- [ ] Task 24: 策略热加载
+- [ ] Task 25: 配置热更新
+- [ ] Task 26: 动态Agent注册
+- [ ] Task 27: 消息批处理优化
+- [ ] Task 28: 异步并发优化
+- [ ] Task 29: 缓存优化
+- [ ] Task 30: 性能压力测试
+- [ ] Task 31: 混沌测试
+- [ ] Task 32: 自动化回归测试
+- [ ] Task 33: 分布式Agent支持
+- [ ] Task 34: 日志系统增强
+- [ ] Task 35: API文档自动生成
+- [ ] Task 36: 部署和运维
+
+---
+
+## 2026-03-19 - Task 21: Agent监控仪表板 ✅
+
+### What was done:
+创建了完整的Agent监控仪表板,包括:
+
+1. **前端界面** (dashboard/):
+   - index.html: 响应式仪表板UI
+   - dashboard.js: 完整的前端逻辑
+   - README.md: 详细使用文档
+   - start-dashboard.sh: 快速启动脚本
+
+2. **功能实现**:
+   - ✅ 实时Agent状态监控
+   - ✅ 消息流实时显示
+   - ✅ 性能指标图表(吞吐量、健康分布)
+   - ✅ Agent控制面板(启动/停止/重启)
+   - ✅ 消息历史查询和过滤
+   - ✅ Agent详情查看
+   - ✅ WebSocket实时数据推送
+   - ✅ 响应式设计,支持移动端
+
+3. **后端集成**:
+   - 更新main.py集成API服务器启动
+   - 更新api_server.py的CORS设置支持仪表板
+   - 连接TradingAgency到API层
+
+### Files Created:
+- dashboard/index.html - 仪表板主页面
+- dashboard/dashboard.js - 前端逻辑(WebSocket + API)
+- dashboard/README.md - 使用文档
+- start-dashboard.sh - 启动脚本
+
+### Files Modified:
+- main.py - 集成API服务器启动
+- api_server.py - 更新CORS设置
+
+### Testing:
+- ✅ WebSocket连接测试通过
+- ✅ 仪表板UI创建完成
+- ✅ API端点已配置
+- ✅ 系统日志显示正确的启动信息
+
+### Features Implemented:
+1. **系统概览**: 显示Agent总数、运行数、健康数、运行时间
+2. **Agent列表**: 实时状态、消息数、错误数、运行时间
+3. **Agent控制**: 点击Agent卡片查看详情,支持启动/停止/重启
+4. **消息流**: 实时显示Agent间通信消息
+5. **性能图表**:
+   - Message Throughput: 实时消息吞吐量
+   - Agent Health Distribution: 健康状态分布
+6. **消息历史**: 支持过滤和搜索,显示最近50条消息
+
+### How to Use:
+1. 启动交易系统:
+   ```bash
+   ./venv/bin/python main.py
+   ```
+
+2. 打开仪表板:
+   ```bash
+   ./start-dashboard.sh
+   # 或直接打开 dashboard/index.html
+   ```
+
+3. 访问 http://localhost:8080
+
+### Notes:
+- 仪表板使用纯HTML+JavaScript实现,无需构建
+- 通过WebSocket实时接收Agent状态更新
+- 通过REST API获取详细数据和执行控制操作
+- 支持所有现代浏览器(Chrome 90+, Firefox 88+, Safari 14+)
+
+---

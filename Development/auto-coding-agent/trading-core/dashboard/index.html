@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading System - Agent Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .agent-card {
+            transition: all 0.3s ease;
+        }
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .status-running {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .message-item {
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-6">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Trading System Dashboard</h1>
+                    <p class="text-gray-400 mt-1">Agent Monitoring & Control Center</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="connection-status" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800">
+                        <span class="w-3 h-3 rounded-full bg-red-500" id="status-indicator"></span>
+                        <span id="status-text">Disconnected</span>
+                    </div>
+                    <button onclick="refreshData()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- System Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Agents</p>
+                        <p class="text-2xl font-bold" id="total-agents">0</p>
+                    </div>
+                    <div class="text-blue-500">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Running</p>
+                        <p class="text-2xl font-bold text-green-500" id="running-agents">0</p>
+                    </div>
+                    <div class="text-green-500">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Healthy</p>
+                        <p class="text-2xl font-bold text-blue-500" id="healthy-agents">0</p>
+                    </div>
+                    <div class="text-blue-500">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Uptime</p>
+                        <p class="text-2xl font-bold" id="uptime">0s</p>
+                    </div>
+                    <div class="text-purple-500">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Agents List -->
+            <div class="lg:col-span-2">
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-xl font-bold mb-4">Agents</h2>
+                    <div id="agents-list" class="space-y-3">
+                        <!-- Agent cards will be inserted here -->
+                        <div class="text-center text-gray-500 py-8">Loading agents...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Flow -->
+            <div>
+                <div class="bg-gray-800 rounded-lg p-6 h-full">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold">Message Flow</h2>
+                        <button onclick="clearMessages()" class="text-sm text-gray-400 hover:text-white">
+                            Clear
+                        </button>
+                    </div>
+                    <div id="message-flow" class="space-y-2 max-h-96 overflow-y-auto">
+                        <!-- Messages will be inserted here -->
+                        <div class="text-center text-gray-500 py-8">Waiting for messages...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">Message Throughput</h2>
+                <canvas id="throughput-chart" height="200"></canvas>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">Agent Health Distribution</h2>
+                <canvas id="health-chart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Message History Table -->
+        <div class="mt-6 bg-gray-800 rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold">Message History</h2>
+                <div class="flex gap-2">
+                    <input type="text" id="message-search" placeholder="Search messages..."
+                           class="px-3 py-2 bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="message-type-filter" class="px-3 py-2 bg-gray-700 rounded-lg text-sm focus:outline-none">
+                        <option value="">All Types</option>
+                        <option value="market_data_update">Market Data</option>
+                        <option value="health_status">Health Status</option>
+                        <option value="strategy_signal">Strategy Signal</option>
+                    </select>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="text-left py-3 px-4">Time</th>
+                            <th class="text-left py-3 px-4">Type</th>
+                            <th class="text-left py-3 px-4">Sender</th>
+                            <th class="text-left py-3 px-4">Content</th>
+                        </tr>
+                    </thead>
+                    <tbody id="message-history">
+                        <!-- Message rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent Detail Modal -->
+    <div id="agent-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="modal-title" class="text-2xl font-bold">Agent Details</h2>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="modal-content">
+                <!-- Agent details will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>

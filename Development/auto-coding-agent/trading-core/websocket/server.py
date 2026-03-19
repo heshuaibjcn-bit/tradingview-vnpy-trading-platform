@@ -18,7 +18,7 @@ from typing import Any, Optional, Set, Dict, List
 import websockets
 from websockets.server import WebSocketServerProtocol
 
-from ..config.settings import get_settings
+from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,12 @@ class MessageType(str, Enum):
 
     # Alerts
     ALERT_TRIGGERED = "alert_triggered"
+
+    # Agent messages (new)
+    AGENT_MESSAGE = "agent_message"
+    AGENT_STATUS = "agent_status"
+    AGENT_HEALTH = "agent_health"
+    MESSAGE_HISTORY = "message_history"
 
     # System
     SYSTEM_STATUS = "system_status"
@@ -73,6 +79,8 @@ class WSMessage:
 class WebSocketServer:
     """
     WebSocket server for real-time communication with frontend.
+
+    Now supports Agent architecture for message broadcasting.
     """
 
     def __init__(self, host: str = "127.0.0.1", port: int = 8765):
@@ -81,6 +89,11 @@ class WebSocketServer:
         self.clients: Set[WebSocketServerProtocol] = set()
         self._server = None
         self._running = False
+
+        # Agent architecture support
+        self._agency = None
+        self._agent_message_subscriptions: Set[str] = set()  # Message types to forward
+        self._forward_agent_messages = False
 
     async def register(self, websocket: WebSocketServerProtocol) -> None:
         """Register a new client connection."""
@@ -200,6 +213,54 @@ class WebSocketServer:
         )
         await self.broadcast(ws_message)
 
+    # Agent architecture methods
+
+    def set_agency(self, agency) -> None:
+        """Set the TradingAgency instance for agent message forwarding."""
+        self._agency = agency
+        self._forward_agent_messages = True
+        logger.info("Agency set for WebSocket message forwarding")
+
+    async def broadcast_agent_message(self, msg_type: str, content: Dict[str, Any],
+                                     sender: str, timestamp: str) -> None:
+        """Broadcast an agent message to connected clients."""
+        message = WSMessage(
+            type=MessageType.AGENT_MESSAGE,
+            data={
+                "msg_type": msg_type,
+                "sender": sender,
+                "content": content,
+                "timestamp": timestamp,
+            }
+        )
+        await self.broadcast(message)
+
+    async def broadcast_agent_status(self, agent_status: Dict[str, Any]) -> None:
+        """Broadcast agent status update."""
+        message = WSMessage(
+            type=MessageType.AGENT_STATUS,
+            data=agent_status
+        )
+        await self.broadcast(message)
+
+    async def broadcast_agent_health(self, health_summary: Dict[str, Any]) -> None:
+        """Broadcast agent health summary."""
+        message = WSMessage(
+            type=MessageType.AGENT_HEALTH,
+            data=health_summary
+        )
+        await self.broadcast(message)
+
+    def subscribe_to_agent_messages(self, msg_types: List[str]) -> None:
+        """Subscribe to specific agent message types for forwarding."""
+        self._agent_message_subscriptions.update(msg_types)
+        logger.info(f"Subscribed to agent messages: {msg_types}")
+
+    def subscribe_to_all_agent_messages(self) -> None:
+        """Subscribe to all agent messages."""
+        self._forward_agent_messages = True
+        logger.info("Subscribed to all agent messages")
+
     async def handle_client_message(self, websocket: WebSocketServerProtocol,
                                     message: str) -> None:
         """Handle incoming message from client."""
@@ -219,6 +280,34 @@ class WebSocketServer:
                     type=MessageType.SYSTEM_STATUS,
                     data={"status": "subscribed", "symbols": symbols}
                 ))
+            elif msg_type == "get_agents":
+                # Get agent status (if agent architecture enabled)
+                if self._agency:
+                    status = self._agency.get_status()
+                    await self.send_to_client(websocket, WSMessage(
+                        type=MessageType.AGENT_STATUS,
+                        data=status
+                    ))
+                else:
+                    logger.warning("get_agents requested but no agency set")
+                    await self.send_to_client(websocket, WSMessage(
+                        type=MessageType.ERROR,
+                        data={"message": "Agent architecture not available"}
+                    ))
+            elif msg_type == "get_health":
+                # Get health summary (if agent architecture enabled)
+                if self._agency:
+                    health = self._agency.get_health_summary()
+                    await self.send_to_client(websocket, WSMessage(
+                        type=MessageType.AGENT_HEALTH,
+                        data=health
+                    ))
+                else:
+                    logger.warning("get_health requested but no agency set")
+                    await self.send_to_client(websocket, WSMessage(
+                        type=MessageType.ERROR,
+                        data={"message": "Agent architecture not available"}
+                    ))
             else:
                 logger.warning(f"Unknown message type: {msg_type}")
 
@@ -227,7 +316,7 @@ class WebSocketServer:
         except Exception as e:
             logger.error(f"Error handling client message: {e}")
 
-    async def handler(self, websocket: WebSocketServerProtocol, path: str) -> None:
+    async def handler(self, websocket: WebSocketServerProtocol) -> None:
         """Handle WebSocket connection."""
         await self.register(websocket)
 
@@ -259,6 +348,12 @@ class WebSocketServer:
     async def stop(self) -> None:
         """Stop the WebSocket server."""
         self._running = False
+
+        # Stop agent message forwarding
+        if self._agency:
+            # Unsubscribe from agent messages
+            self._forward_agent_messages = False
+            self._agent_message_subscriptions.clear()
 
         # Close all client connections
         for client in self.clients:

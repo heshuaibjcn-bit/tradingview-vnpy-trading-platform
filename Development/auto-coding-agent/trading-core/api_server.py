@@ -39,6 +39,19 @@ async def lifespan(app: FastAPI):
     # Store in app state
     app.state.market_fetcher = market_fetcher
 
+    # Import and include agents API if agent architecture is enabled
+    if settings.USE_AGENT_ARCHITECTURE:
+        try:
+            from api.agents import router as agents_router, set_agency
+            from agents import TradingAgency
+
+            # Create agency instance (will be initialized by main.py)
+            # For API access, we'll set it later
+            app.include_router(agents_router)
+            logger.info("✅ Agent management API enabled")
+        except ImportError as e:
+            logger.warning(f"Could not import agents API: {e}")
+
     logger.info("✅ API Server ready")
 
     yield
@@ -57,7 +70,15 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "file://",  # For opening HTML file directly
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -294,6 +315,20 @@ async def get_data_sources():
         ],
         "primary": "eastmoney",
         "fallback": ["sina"]
+    }
+
+
+@app.get("/api/agent-architecture")
+async def get_agent_architecture_info():
+    """Get agent architecture information"""
+    return {
+        "enabled": settings.USE_AGENT_ARCHITECTURE,
+        "message_db_path": settings.AGENT_MESSAGE_DB_PATH,
+        "health_check_interval": settings.AGENT_HEALTH_CHECK_INTERVAL,
+        "message_retention_days": settings.AGENT_MESSAGE_RETENTION_DAYS,
+        "message_history_size": settings.AGENT_MESSAGE_HISTORY_SIZE,
+        "persistence_enabled": settings.AGENT_ENABLE_PERSISTENCE,
+        "timestamp": datetime.now().isoformat()
     }
 
 
