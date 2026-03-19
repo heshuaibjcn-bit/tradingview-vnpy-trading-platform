@@ -15,7 +15,7 @@
 - [x] Task 24: 策略热加载 ✅
 - [x] Task 25: 配置热更新 ✅
 - [x] Task 26: 动态Agent注册 ✅
-- [ ] Task 27: 消息批处理优化
+- [x] Task 27: 消息批处理优化 ✅
 - [ ] Task 28: 异步并发优化
 - [ ] Task 29: 缓存优化
 - [ ] Task 30: 性能压力测试
@@ -675,3 +675,164 @@ curl "http://localhost:8000/api/dynamic-agents/history?agent_id=my_custom_fetche
 - 依赖Agent必须运行中
 
 ---
+
+---
+
+## 2026-03-19 - Task 27: 消息批处理优化 ✅
+
+### What was done:
+优化消息处理性能,实现批量处理机制:
+
+1. **批处理核心系统** (agents/batch_processor.py):
+   - ✅ BatchConfig - 批处理配置类
+   - ✅ BatchStats - 批处理统计数据类
+   - ✅ MessageBatcher - 消息批量收集器
+   - ✅ BatchMessageBus - 批处理消息总线包装器
+   - ✅ create_batch_message_bus() - 工厂函数
+   - ✅ 可配置批次大小和等待时间
+   - ✅ 立即消息处理通道(紧急消息)
+   - ✅ 队列过载保护
+   - ✅ 批处理性能统计
+
+2. **批处理机制**:
+   - ✅ 基于大小的批处理(max_batch_size)
+   - ✅ 基于时间的批处理(max_wait_time)
+   - ✅ 紧急消息立即处理通道
+   - ✅ 队列背压控制(max_queue_size)
+   - ✅ 自动批处理统计
+   - ✅ 吞吐量和延迟监控
+
+3. **TradingAgency集成**:
+   - ✅ 批处理初始化参数
+   - ✅ 启动/停止集成
+   - ✅ 统计信息导出
+   - ✅ 配置参数传递
+
+4. **配置管理** (config/settings.py):
+   - ✅ ENABLE_BATCH_PROCESSING - 批处理开关
+   - ✅ BATCH_MAX_SIZE - 最大批次大小(100)
+   - ✅ BATCH_MAX_WAIT_TIME - 最大等待时间(0.1s)
+   - ✅ BATCH_MAX_QUEUE_SIZE - 最大队列大小(10000)
+
+5. **REST API** (api/batch_processing.py):
+   - ✅ GET /api/batch-processing/stats - 获取批处理统计
+   - ✅ GET /api/batch-processing/config - 获取批处理配置
+   - ✅ POST /api/batch-processing/config - 更新批处理配置
+   - ✅ POST /api/batch-processing/reset-stats - 重置统计
+   - ✅ POST /api/batch-processing/flush - 立即刷新队列
+   - ✅ GET /api/batch-processing/health - 健康状态
+   - ✅ GET /api/batch-processing/immediate-types - 立即处理类型
+   - ✅ POST /api/batch-processing/immediate-types - 添加立即类型
+   - ✅ DELETE /api/batch-processing/immediate-types/{type} - 移除立即类型
+
+6. **单元测试** (tests/agents/test_batch_processor.py):
+   - ✅ TestBatchConfig - 配置测试(3个测试)
+   - ✅ TestBatchStats - 统计测试(3个测试)
+   - ✅ TestMessageBatcher - 批处理测试(7个测试)
+   - ✅ TestBatchMessageBus - 包装器测试(4个测试)
+   - ✅ TestBatchProcessingPerformance - 性能测试(3个测试)
+   - ✅ 总计20个测试用例,全部通过
+
+7. **系统集成**:
+   - ✅ 更新agents/__init__.py导出批处理组件
+   - ✅ 更新agents/agency.py支持批处理
+   - ✅ 更新main.py传递批处理配置
+   - ✅ 更新api_server.py集成批处理API路由
+
+### Files Created:
+- agents/batch_processor.py - 批处理核心系统
+- api/batch_processing.py - 批处理REST API
+- tests/agents/test_batch_processor.py - 单元测试(20个测试)
+
+### Files Modified:
+- agents/__init__.py - 导出批处理组件
+- agents/agency.py - 支持批处理初始化
+- config/settings.py - 添加批处理配置参数
+- main.py - 传递批处理配置给TradingAgency
+- api_server.py - 集成batch_processing API路由
+
+### Testing:
+- ✅ 20个单元测试全部通过
+- ✅ 批处理吞吐量测试: >100 msg/s
+- ✅ 批处理延迟测试: <200ms
+- ✅ 立即消息测试: 紧急消息优先处理
+- ✅ 队列过载测试: 正确检测过载
+- ✅ 配置验证测试: 参数验证正确
+- ✅ 模块导入测试: 所有组件可导入
+
+### Batch Processing Features:
+1. **批量收集**: 根据大小或时间自动收集消息
+2. **紧急通道**: EMERGENCY_STOP等消息立即处理
+3. **背压控制**: 队列满时丢弃新消息
+4. **性能统计**: 吞吐量、延迟、批次大小统计
+5. **动态配置**: 运行时调整批处理参数
+6. **健康监控**: 队列利用率、延迟监控
+
+### Default Configuration:
+```python
+BATCH_MAX_SIZE = 100           # 最大批次大小
+BATCH_MAX_WAIT_TIME = 0.1      # 最大等待时间(秒)
+BATCH_MAX_QUEUE_SIZE = 10000   # 最大队列大小
+```
+
+### Immediate Message Types:
+- EMERGENCY_STOP - 紧急停止
+- ERROR - 错误消息
+- HEALTH_CHECK - 健康检查
+
+### API Usage:
+```bash
+# 获取批处理统计
+curl "http://localhost:8000/api/batch-processing/stats"
+
+# 获取批处理配置
+curl "http://localhost:8000/api/batch-processing/config"
+
+# 更新批处理配置
+curl -X POST "http://localhost:8000/api/batch-processing/config" \
+  -H "Content-Type: application/json" \
+  -d '{"max_batch_size": 200, "max_wait_time": 0.05}'
+
+# 重置统计
+curl -X POST "http://localhost:8000/api/batch-processing/reset-stats"
+
+# 立即刷新队列
+curl -X POST "http://localhost:8000/api/batch-processing/flush"
+
+# 获取健康状态
+curl "http://localhost:8000/api/batch-processing/health"
+
+# 添加立即处理类型
+curl -X POST "http://localhost:8000/api/batch-processing/immediate-types?msg_type=custom_alert"
+
+# 查看立即处理类型
+curl "http://localhost:8000/api/batch-processing/immediate-types"
+```
+
+### Performance Metrics:
+- **吞吐量**: >100 messages/second (性能测试)
+- **延迟**: <200ms average batch latency
+- **队列利用率**: 实时监控
+- **批次大小**: 平均值和统计
+
+### Statistics Tracked:
+- messages_queued - 入队消息数
+- messages_batched - 批处理消息数
+- messages_immediate - 立即处理消息数
+- batches_processed - 处理的批次数
+- batches_flushed_by_size - 按大小刷新的批次
+- batches_flushed_by_time - 按时间刷新的批次
+- total_batch_time - 总批处理时间
+- avg_batch_size - 平均批次大小
+- avg_batch_latency - 平均批处理延迟
+- queue_overruns - 队列溢出次数
+
+### Notes:
+- 批处理显著提升消息吞吐量
+- 紧急消息始终优先处理
+- 队列大小防止内存溢出
+- 配置可运行时动态调整
+- 所有API支持CORS
+- 统计信息可重置
+- 支持立即刷新队列
+

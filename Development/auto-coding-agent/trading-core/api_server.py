@@ -48,6 +48,7 @@ async def lifespan(app: FastAPI):
             from api.strategies import router as strategies_router
             from api.config import router as config_router
             from api.dynamic_agents import router as dynamic_agents_router
+            from api.batch_processing import router as batch_processing_router
             from agents import TradingAgency
 
             # Create agency instance (will be initialized by main.py)
@@ -58,12 +59,14 @@ async def lifespan(app: FastAPI):
             app.include_router(strategies_router)
             app.include_router(config_router)
             app.include_router(dynamic_agents_router)
+            app.include_router(batch_processing_router)
             logger.info("✅ Agent management API enabled")
             logger.info("✅ Message management API enabled")
             logger.info("✅ Performance monitoring API enabled")
             logger.info("✅ Strategy hot reload API enabled")
             logger.info("✅ Config hot reload API enabled")
             logger.info("✅ Dynamic agents API enabled")
+            logger.info("✅ Batch processing API enabled")
         except ImportError as e:
             logger.warning(f"Could not import agents API: {e}")
 

@@ -15,6 +15,7 @@ from .message_bus import AgentMessageBus
 from .registry import AgentRegistry
 from .models import SystemStatus
 from .messages import MessageType, create_message
+from .batch_processor import BatchMessageBus, BatchConfig, create_batch_message_bus
 
 
 class TradingAgency:
@@ -34,6 +35,9 @@ class TradingAgency:
         db_path: str = "data/messages.db",
         health_check_interval: float = 30.0,
         message_history_size: int = 1000,
+        enable_batch_processing: bool = True,
+        batch_max_size: int = 100,
+        batch_max_wait_time: float = 0.1,
     ):
         """
         Initialize the trading agency
@@ -43,6 +47,9 @@ class TradingAgency:
             db_path: Path to message database
             health_check_interval: Seconds between health checks
             message_history_size: Maximum messages in memory
+            enable_batch_processing: Whether to enable message batch processing
+            batch_max_size: Maximum batch size for message processing
+            batch_max_wait_time: Maximum wait time before flushing batches (seconds)
         """
         # Message bus
         self._message_bus = AgentMessageBus(
@@ -50,6 +57,18 @@ class TradingAgency:
             db_path=db_path,
             history_size=message_history_size,
         )
+
+        # Batch processing wrapper
+        self._batch_message_bus: Optional[BatchMessageBus] = None
+        self._enable_batch_processing = enable_batch_processing
+
+        if enable_batch_processing:
+            batch_config = BatchConfig(
+                max_batch_size=batch_max_size,
+                max_wait_time=batch_max_wait_time,
+                enabled=True,
+            )
+            self._batch_message_bus = BatchMessageBus(self._message_bus, batch_config)
 
         # Agent registry
         self._registry = AgentRegistry(
@@ -66,7 +85,8 @@ class TradingAgency:
         logger.info(
             f"TradingAgency initialized "
             f"(persistence={enable_persistence}, "
-            f"health_check_interval={health_check_interval}s)"
+            f"health_check_interval={health_check_interval}s, "
+            f"batch_processing={enable_batch_processing})"
         )
 
     def register_agent(self, agent: BaseAgent) -> None:
@@ -108,8 +128,9 @@ class TradingAgency:
 
         This method:
         1. Updates agency status
-        2. Starts health monitoring
-        3. Starts all agents in dependency order
+        2. Starts batch processing if enabled
+        3. Starts health monitoring
+        4. Starts all agents in dependency order
         """
         if self._running:
             logger.warning("TradingAgency already running")
@@ -120,6 +141,11 @@ class TradingAgency:
 
             self._running = True
             self._started_at = datetime.now()
+
+            # Start batch processing
+            if self._batch_message_bus:
+                await self._batch_message_bus.start()
+                logger.info("Batch processing started")
 
             # Start health checks
             await self._registry.start_health_checks()
@@ -150,7 +176,8 @@ class TradingAgency:
         This method:
         1. Stops all agents
         2. Stops health monitoring
-        3. Updates agency status
+        3. Stops batch processing if enabled
+        4. Updates agency status
         """
         if not self._running:
             logger.warning("TradingAgency not running")
@@ -164,6 +191,11 @@ class TradingAgency:
 
             # Stop health checks
             await self._registry.stop_health_checks()
+
+            # Stop batch processing
+            if self._batch_message_bus:
+                await self._batch_message_bus.stop()
+                logger.info("Batch processing stopped")
 
             # Shutdown message bus
             await self._message_bus.shutdown()
@@ -329,7 +361,24 @@ class TradingAgency:
         Returns:
             Dictionary with message bus stats
         """
-        return self._message_bus.get_stats()
+        stats = self._message_bus.get_stats()
+
+        # Add batch processing stats if enabled
+        if self._batch_message_bus:
+            stats["batch_processing"] = self._batch_message_bus.get_stats()
+
+        return stats
+
+    def get_batch_stats(self) -> Optional[Dict[str, Any]]:
+        """
+        Get batch processing statistics
+
+        Returns:
+            Dictionary with batch processing stats or None if disabled
+        """
+        if self._batch_message_bus:
+            return self._batch_message_bus.get_stats()
+        return None
 
     def get_health_summary(self) -> Dict[str, Any]:
         """

@@ -79,3 +79,20 @@ __all__.extend([
     "get_dynamic_agent_manager",
     "init_dynamic_agent_manager",
 ])
+
+# Batch processing support
+from .batch_processor import (
+    BatchConfig,
+    BatchStats,
+    MessageBatcher,
+    BatchMessageBus,
+    create_batch_message_bus,
+)
+
+__all__.extend([
+    "BatchConfig",
+    "BatchStats",
+    "MessageBatcher",
+    "BatchMessageBus",
+    "create_batch_message_bus",
+])

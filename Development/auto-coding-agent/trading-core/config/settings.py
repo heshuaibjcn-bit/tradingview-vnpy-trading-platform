@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     AGENT_MESSAGE_HISTORY_SIZE: int = 1000
     AGENT_ENABLE_PERSISTENCE: bool = True
 
+    # Batch Processing
+    ENABLE_BATCH_PROCESSING: bool = True
+    BATCH_MAX_SIZE: int = Field(default=100, ge=1, le=1000)
+    BATCH_MAX_WAIT_TIME: float = Field(default=0.1, ge=0.001, le=10.0)
+    BATCH_MAX_QUEUE_SIZE: int = Field(default=10000, ge=100, le=100000)
+
     # Paths
     BASE_DIR: Path = Field(default_factory=lambda: Path(__file__).parent.parent)
 

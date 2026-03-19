@@ -114,6 +114,9 @@ async def main_agent_architecture():
         db_path=settings.AGENT_MESSAGE_DB_PATH,
         health_check_interval=settings.AGENT_HEALTH_CHECK_INTERVAL,
         message_history_size=settings.AGENT_MESSAGE_HISTORY_SIZE,
+        enable_batch_processing=settings.ENABLE_BATCH_PROCESSING,
+        batch_max_size=settings.BATCH_MAX_SIZE,
+        batch_max_wait_time=settings.BATCH_MAX_WAIT_TIME,
     )
 
     # Initialize performance monitoring
