@@ -34,6 +34,11 @@ if get_settings().USE_AGENT_ARCHITECTURE:
     from alerts.engine import AlertEngine
     from trade_log.recorder import TradeRecorder, SignalRecorder
     from security.audit import get_audit_logger
+
+    # Performance monitoring
+    from monitoring.metrics import init_metrics_collector
+    from monitoring.alerts import AlertEngine as PerfAlertEngine
+    from monitoring.reports import ReportGenerator
 else:
     # Legacy architecture
     from strategies.engine import StrategyEngine
@@ -111,6 +116,57 @@ async def main_agent_architecture():
         message_history_size=settings.AGENT_MESSAGE_HISTORY_SIZE,
     )
 
+    # Initialize performance monitoring
+    metrics_collector = init_metrics_collector(
+        collection_interval=10.0,
+        retention_hours=24,
+    )
+
+    # Load persisted metrics
+    metrics_collector.load_persisted_metrics()
+
+    # Register gauges with metrics collector
+    def get_message_count():
+        status = agency.get_status()
+        return status.get("message_bus", {}).get("messages_sent", 0)
+
+    def get_active_agents():
+        status = agency.get_status()
+        agents = status.get("agents", {})
+        return agents.get("running", 0)
+
+    def get_healthy_agents():
+        health = agency.get_health_summary()
+        return health.get("healthy", 0)
+
+    def get_unhealthy_agents():
+        health = agency.get_health_summary()
+        return health.get("unhealthy", 0)
+
+    def get_total_messages():
+        status = agency.get_status()
+        return status.get("message_bus", {}).get("messages_sent", 0)
+
+    metrics_collector.register_gauge('message_count', get_message_count)
+    metrics_collector.register_gauge('active_agents', get_active_agents)
+    metrics_collector.register_gauge('healthy_agents', get_healthy_agents)
+    metrics_collector.register_gauge('unhealthy_agents', get_unhealthy_agents)
+    metrics_collector.register_gauge('total_messages', get_total_messages)
+
+    # Create alert engine
+    from monitoring.alerts import AlertEngine as PerfAlertEngine
+    perf_alert_engine = PerfAlertEngine(metrics_collector)
+
+    # Set global instances for API access
+    import api.performance
+    api.performance.get_metrics_collector = lambda: metrics_collector
+    api.performance.get_alert_engine = lambda: perf_alert_engine
+
+    # Start metrics collection
+    await metrics_collector.start()
+
+    logger.info("✅ Performance monitoring initialized")
+
     # Create and register agents
     agency.register_agent(MarketDataAgent(
         fetcher=market_fetcher,
@@ -183,6 +239,11 @@ async def main_agent_architecture():
     # Connect agency to WebSocket server for agent status updates
     ws_server.set_agency(agency)
 
+    # Now set up alert engine with agency running
+    from monitoring.alerts import AlertEngine as PerfAlertEngine
+    alert_engine = PerfAlertEngine(metrics_collector)
+    api.performance.get_alert_engine = lambda: alert_engine
+
     logger.info("✅ System ready (agent architecture)")
     logger.info(f"✅ WebSocket server running on ws://{settings.WS_HOST}:{settings.WS_PORT}")
     logger.info(f"✅ API server running on http://127.0.0.1:8000")
@@ -201,13 +262,20 @@ async def main_agent_architecture():
     finally:
         logger.info("🛑 Shutting down...")
         await agency.stop()
+
+        # Stop performance monitoring
+        if 'metrics_collector' in locals():
+            await metrics_collector.stop()
+
         await stop_server()
+
         # Stop API server
         api_task.cancel()
         try:
             await api_task
         except asyncio.CancelledError:
             pass
+
         logger.info("✅ Shutdown complete")
 
 

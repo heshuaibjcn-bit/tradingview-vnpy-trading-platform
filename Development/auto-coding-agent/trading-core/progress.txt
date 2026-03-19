@@ -11,7 +11,7 @@
 
 - [x] Task 21: Agent监控仪表板 ✅
 - [x] Task 22: 消息持久化优化 ✅
-- [ ] Task 23: 性能监控系统
+- [x] Task 23: 性能监控系统 ✅
 - [ ] Task 24: 策略热加载
 - [ ] Task 25: 配置热更新
 - [ ] Task 26: 动态Agent注册
@@ -218,5 +218,112 @@ curl -X POST http://localhost:8000/api/messages/optimize
 - 导出文件自动清理,只保留最近10个
 - 数据库优化建议定期运行(如每周一次)
 - 所有API端点支持完整的CORS配置
+
+---
+
+---
+
+## 2026-03-19 - Task 23: 性能监控系统 ✅
+
+### What was done:
+实现全面的性能指标采集和展示系统:
+
+1. **性能指标采集** (monitoring/metrics.py):
+   - ✅ MetricsCollector - 10秒间隔采集系统指标
+   - ✅ PerformanceMetrics数据类 - CPU、内存、磁盘、消息、Agent状态
+   - ✅ Gauge和Counter指标注册
+   - ✅ 时间序列数据存储(内存+磁盘)
+   - ✅ 自动数据清理和持久化
+   - ✅ 指标汇总统计(avg/max/min)
+
+2. **告警引擎** (monitoring/alerts.py):
+   - ✅ AlertEngine - 评估指标触发告警
+   - ✅ 7个默认告警规则(CPU、内存、磁盘、Agent健康度、吞吐量)
+   - ✅ 4个严重级别(INFO/WARNING/ERROR/CRITICAL)
+   - ✅ 告警历史记录
+   - ✅ 告警回调机制
+   - ✅ 规则启用/禁用
+
+3. **报告生成器** (monitoring/reports.py):
+   - ✅ ReportGenerator - 生成性能报告
+   - ✅ 自动问题识别(高CPU、内存、活跃告警)
+   - ✅ 智能建议生成
+   - ✅ JSON和Markdown格式导出
+   - ✅ 最新报告查询
+
+4. **REST API** (api/performance.py):
+   - ✅ GET /api/performance/metrics/current - 当前指标
+   - ✅ GET /api/performance/metrics/history - 历史指标
+   - ✅ GET /api/performance/metrics/summary - 统计摘要
+   - ✅ GET /api/performance/alerts - 告警列表
+   - ✅ GET /api/performance/alerts/summary - 告警统计
+   - ✅ GET /api/performance/alerts/rules - 告警规则
+   - ✅ POST /api/performance/alerts/rules/{id}/toggle - 启用/禁用规则
+   - ✅ POST /api/performance/reports/generate - 生成报告
+   - ✅ GET /api/performance/reports/latest - 最新报告
+   - ✅ GET /api/performance/status - 整体状态
+
+5. **系统集成**:
+   - ✅ 更新main.py集成性能监控
+   - ✅ 注册Agent状态gauge
+   - ✅ 启动时自动采集指标
+   - ✅ 更新api_server.py集成performance路由
+   - ✅ 更新monitoring/__init__.py导出新组件
+
+### Files Created:
+- monitoring/metrics.py - 性能指标采集
+- monitoring/alerts.py - 告警引擎
+- monitoring/reports.py - 报告生成器
+- api/performance.py - 性能监控REST API
+
+### Files Modified:
+- main.py - 集成性能监控初始化
+- api_server.py - 集成performance API路由
+- monitoring/__init__.py - 导出新组件
+
+### Metrics Collected:
+- **系统**: CPU%, Memory%, Disk%
+- **消息**: 消息数、吞吐量(msg/s)
+- **Agent**: 活动数、健康数、不健康数
+
+### Default Alert Rules:
+1. CPU > 80% (WARNING, 120s)
+2. CPU > 95% (CRITICAL, 60s)
+3. Memory > 85% (WARNING, 120s)
+4. Memory > 95% (CRITICAL, 60s)
+5. Disk > 90% (ERROR, 300s)
+6. Unhealthy Agents > 0 (WARNING, 60s)
+7. Throughput < 0.1 msg/s (INFO, 300s)
+
+### API Usage:
+```bash
+# 获取当前指标
+curl http://localhost:8000/api/performance/metrics/current
+
+# 获取指标摘要
+curl http://localhost:8000/api/performance/metrics/summary
+
+# 获取告警
+curl http://localhost:8000/api/performance/alerts
+
+# 生成报告
+curl -X POST "http://localhost:8000/api/performance/reports/generate?hours=24"
+
+# 获取整体状态
+curl http://localhost:8000/api/performance/status
+```
+
+### Data Storage:
+- 内存: 最近8640个数据点(24小时x10秒)
+- 磁盘: data/metrics/metrics_*.json
+- 报告: data/reports/report_*.json
+- 自动清理: 保留24小时数据
+
+### Notes:
+- 采集间隔可配置(默认10秒)
+- 告警规则可动态启用/禁用
+- 报告自动保存为JSON和Markdown
+- 所有API支持CORS,便于前端集成
+- 告警支持回调扩展
 
 ---
