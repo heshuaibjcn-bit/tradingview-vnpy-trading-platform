@@ -28,6 +28,21 @@ from .registry import AgentRegistry, AgentInfo
 from .agency import TradingAgency
 from .messages import MessageType, create_message
 
+# Global agency instance (set by main.py)
+_agency_instance = None
+
+
+def set_agency(agency):
+    """Set the global agency instance"""
+    global _agency_instance
+    _agency_instance = agency
+
+
+def get_agency():
+    """Get the global agency instance"""
+    return _agency_instance
+
+
 __all__ = [
     # Core components
     "BaseAgent",
@@ -39,6 +54,9 @@ __all__ = [
     "TradingAgency",
     "MessageType",
     "create_message",
+    # Global functions
+    "set_agency",
+    "get_agency",
 ]
 
 __version__ = "1.0.0"

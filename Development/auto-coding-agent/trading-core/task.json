@@ -32,7 +32,7 @@
         "优化数据库连接池",
         "添加消息导出功能(CSV/JSON)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": 23,

@@ -43,12 +43,15 @@ async def lifespan(app: FastAPI):
     if settings.USE_AGENT_ARCHITECTURE:
         try:
             from api.agents import router as agents_router, set_agency
+            from api.messages import router as messages_router
             from agents import TradingAgency
 
             # Create agency instance (will be initialized by main.py)
             # For API access, we'll set it later
             app.include_router(agents_router)
+            app.include_router(messages_router)
             logger.info("✅ Agent management API enabled")
+            logger.info("✅ Message management API enabled")
         except ImportError as e:
             logger.warning(f"Could not import agents API: {e}")
 

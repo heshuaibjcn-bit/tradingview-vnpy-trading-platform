@@ -10,7 +10,7 @@
 ## 任务列表 (Task 21-36)
 
 - [x] Task 21: Agent监控仪表板 ✅
-- [ ] Task 22: 消息持久化优化
+- [x] Task 22: 消息持久化优化 ✅
 - [ ] Task 23: 性能监控系统
 - [ ] Task 24: 策略热加载
 - [ ] Task 25: 配置热更新
@@ -99,5 +99,124 @@
 - 通过WebSocket实时接收Agent状态更新
 - 通过REST API获取详细数据和执行控制操作
 - 支持所有现代浏览器(Chrome 90+, Firefox 88+, Safari 14+)
+
+---
+
+---
+
+## 2026-03-19 - Task 22: 消息持久化优化 ✅
+
+### What was done:
+优化消息数据库性能和查询能力,实现完整的消息管理功能:
+
+1. **数据库优化** (agents/database.py):
+   - ✅ 添加复合索引(idx_type_timestamp, idx_sender_timestamp)
+   - ✅ 创建归档表(messages_archive)
+   - ✅ 实现批量写入优化(save_messages_batch)
+   - ✅ 添加消息归档功能(archive_old_messages)
+   - ✅ 实现数据库优化(optimize_database - VACUUM + ANALYZE)
+   - ✅ 添加数据库大小统计(get_database_size)
+
+2. **消息导出功能**:
+   - ✅ 导出为CSV(export_to_csv)
+   - ✅ 导出为JSON(export_to_json)
+   - ✅ 支持过滤(msg_type, sender, 时间范围)
+   - ✅ 支持limit限制
+
+3. **命令行工具** (tools/message_query.py):
+   - ✅ 查询消息(query)
+   - ✅ 显示统计(stats)
+   - ✅ 导出消息(export)
+   - ✅ 清理旧消息(clean)
+   - ✅ 优化数据库(optimize)
+
+4. **REST API** (api/messages.py):
+   - ✅ GET /api/messages/stats - 获取统计信息
+   - ✅ GET /api/messages/stats/trend - 获取消息趋势
+   - ✅ POST /api/messages/export - 导出消息
+   - ✅ POST /api/messages/clean - 清理旧消息
+   - ✅ POST /api/messages/optimize - 优化数据库
+   - ✅ GET /api/messages/types - 消息类型统计
+   - ✅ GET /api/messages/senders - 发送者统计
+
+5. **代码增强**:
+   - ✅ 更新agents/__init__.py添加get_agency()函数
+   - ✅ 更新api_server.py集成messages路由
+
+### Files Created:
+- tools/message_query.py - 命令行查询工具
+- api/messages.py - 消息管理REST API
+
+### Files Modified:
+- agents/database.py - 添加批量写入、归档、导出、优化等功能
+- agents/__init__.py - 添加get_agency()函数
+- api_server.py - 集成messages API路由
+
+### Testing:
+- ✅ 命令行工具stats命令测试通过
+- ✅ 导出JSON功能测试通过
+- ✅ 数据库统计正常:
+   - Total Messages: 4836
+   - Database Size: 2.33 MB
+   - Messages by Type: market_data_update(3550), health_status(1286)
+   - Messages by Sender: market_fetcher(3550), system_monitor(1286)
+
+### Features Implemented:
+1. **批量写入**: save_messages_batch()支持事务批量插入
+2. **消息归档**: 将旧消息移至archive表,而非直接删除
+3. **数据导出**: 支持CSV和JSON格式,包含完整过滤条件
+4. **数据库优化**: VACUUM + ANALYZE,释放空间并更新统计信息
+5. **命令行工具**: 完整的消息管理和查询工具
+6. **REST API**: 完整的API端点支持前端集成
+7. **统计查询**: 按类型、发送者、时间趋势统计
+
+### How to Use:
+
+**命令行工具**:
+```bash
+# 查看统计
+./venv/bin/python tools/message_query.py stats
+
+# 查询最近50条消息
+./venv/bin/python tools/message_query.py query --limit 50
+
+# 导出最近1小时消息为JSON
+./venv/bin/python tools/message_query.py export --hours 1 --format json --output messages.json
+
+# 清理30天前的消息
+./venv/bin/python tools/message_query.py clean --days 30
+
+# 归档(而非删除)30天前的消息
+./venv/bin/python tools/message_query.py clean --days 30 --archive
+
+# 优化数据库
+./venv/bin/python tools/message_query.py optimize
+```
+
+**REST API**:
+```bash
+# 获取统计
+curl http://localhost:8000/api/messages/stats
+
+# 获取消息趋势
+curl http://localhost:8000/api/messages/stats/trend?interval_minutes=60&limit=24
+
+# 导出消息
+curl -X POST "http://localhost:8000/api/messages/export?format=json&hours=1" \
+  --output messages.json
+
+# 清理旧消息
+curl -X POST "http://localhost:8000/api/messages/clean?days=30&archive=false"
+
+# 优化数据库
+curl -X POST http://localhost:8000/api/messages/optimize
+```
+
+### Notes:
+- 批量写入使用事务保证原子性
+- 归档功能保留数据用于历史分析
+- 导出文件自动清理,只保留最近10个
+- 数据库优化建议定期运行(如每周一次)
+- 所有API端点支持完整的CORS配置
 
 ---

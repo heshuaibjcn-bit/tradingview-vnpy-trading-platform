@@ -6,11 +6,13 @@ This module handles persistent storage of agent messages using SQLite.
 
 import sqlite3
 import json
+import csv
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 from loguru import logger
+import asyncio
 
 from .messages import AgentMessage
 
@@ -77,6 +79,32 @@ class MessageDatabase:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_recipient
                 ON messages(recipient)
+            """)
+
+            # Create composite index for common queries
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_type_timestamp
+                ON messages(msg_type, timestamp DESC)
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_sender_timestamp
+                ON messages(sender, timestamp DESC)
+            """)
+
+            # Create archive table for old messages
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messages_archive (
+                    id TEXT PRIMARY KEY,
+                    msg_type TEXT NOT NULL,
+                    sender TEXT NOT NULL,
+                    recipient TEXT,
+                    content_json TEXT NOT NULL,
+                    timestamp DATETIME NOT NULL,
+                    correlation_id TEXT,
+                    reply_to TEXT,
+                    archived_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
             """)
 
             conn.commit()
@@ -383,7 +411,316 @@ class MessageDatabase:
             "reply_to": row["reply_to"],
         })
 
-    def close(self) -> None:
-        """Close database connection and cleanup"""
-        # SQLite connections are closed automatically by context manager
-        logger.info("MessageDatabase closed")
+    def save_message(self, message: AgentMessage) -> bool:
+        """
+        Save a message to the database
+
+        Args:
+            message: AgentMessage to save
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    INSERT INTO messages
+                    (id, msg_type, sender, recipient, content_json,
+                     timestamp, correlation_id, reply_to)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    message.id,
+                    message.msg_type,
+                    message.sender,
+                    message.recipient,
+                    json.dumps(message.content, ensure_ascii=False),
+                    message.timestamp.isoformat(),
+                    message.correlation_id,
+                    message.reply_to,
+                ))
+
+                conn.commit()
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to save message to database: {e}")
+            return False
+
+    def save_messages_batch(self, messages: List[AgentMessage]) -> int:
+        """
+        Save multiple messages in a single transaction
+
+        Args:
+            messages: List of AgentMessage objects to save
+
+        Returns:
+            Number of messages successfully saved
+        """
+        if not messages:
+            return 0
+
+        saved_count = 0
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Begin transaction
+                cursor.execute("BEGIN TRANSACTION")
+
+                for message in messages:
+                    try:
+                        cursor.execute("""
+                            INSERT INTO messages
+                            (id, msg_type, sender, recipient, content_json,
+                             timestamp, correlation_id, reply_to)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            message.id,
+                            message.msg_type,
+                            message.sender,
+                            message.recipient,
+                            json.dumps(message.content, ensure_ascii=False),
+                            message.timestamp.isoformat(),
+                            message.correlation_id,
+                            message.reply_to,
+                        ))
+                        saved_count += 1
+                    except sqlite3.IntegrityError:
+                        # Message already exists, skip
+                        continue
+                    except Exception as e:
+                        logger.warning(f"Failed to save message {message.id}: {e}")
+                        continue
+
+                # Commit transaction
+                conn.commit()
+                logger.info(f"Batch saved {saved_count}/{len(messages)} messages")
+
+        except Exception as e:
+            logger.error(f"Failed to save messages batch: {e}")
+            return 0
+
+        return saved_count
+
+    def archive_old_messages(self, days: int = 30) -> int:
+        """
+        Archive messages older than specified days to archive table
+
+        Args:
+            days: Number of days after which messages are archived
+
+        Returns:
+            Number of messages archived
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cutoff = datetime.now() - timedelta(days=days)
+
+                # Copy to archive table
+                cursor.execute("""
+                    INSERT INTO messages_archive
+                    (id, msg_type, sender, recipient, content_json,
+                     timestamp, correlation_id, reply_to)
+                    SELECT id, msg_type, sender, recipient, content_json,
+                           timestamp, correlation_id, reply_to
+                    FROM messages
+                    WHERE timestamp < ?
+                """, (cutoff.isoformat(),))
+
+                archived_count = cursor.rowcount
+
+                # Delete from main table
+                cursor.execute("""
+                    DELETE FROM messages
+                    WHERE timestamp < ?
+                """, (cutoff.isoformat(),))
+
+                conn.commit()
+
+                logger.info(f"Archived {archived_count} messages (older than {days} days)")
+                return archived_count
+
+        except Exception as e:
+            logger.error(f"Failed to archive messages: {e}")
+            return 0
+
+    def export_to_csv(
+        self,
+        output_path: str,
+        msg_type: Optional[str] = None,
+        sender: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        limit: int = 10000,
+    ) -> bool:
+        """
+        Export messages to CSV file
+
+        Args:
+            output_path: Path to output CSV file
+            msg_type: Filter by message type
+            sender: Filter by sender
+            start_time: Filter by start time
+            end_time: Filter by end time
+            limit: Maximum number of messages to export
+
+        Returns:
+            True if successful
+        """
+        try:
+            messages = self.get_messages(
+                msg_type=msg_type,
+                sender=sender,
+                start_time=start_time,
+                end_time=end_time,
+                limit=limit,
+            )
+
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+
+                # Write header
+                writer.writerow([
+                    'ID', 'Type', 'Sender', 'Recipient',
+                    'Timestamp', 'Correlation ID', 'Content'
+                ])
+
+                # Write data
+                for msg in messages:
+                    content_str = json.dumps(msg.content, ensure_ascii=False)
+                    writer.writerow([
+                        msg.id,
+                        msg.msg_type,
+                        msg.sender,
+                        msg.recipient or '',
+                        msg.timestamp.isoformat(),
+                        msg.correlation_id or '',
+                        content_str,
+                    ])
+
+            logger.info(f"Exported {len(messages)} messages to {output_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to export messages to CSV: {e}")
+            return False
+
+    def export_to_json(
+        self,
+        output_path: str,
+        msg_type: Optional[str] = None,
+        sender: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        limit: int = 10000,
+    ) -> bool:
+        """
+        Export messages to JSON file
+
+        Args:
+            output_path: Path to output JSON file
+            msg_type: Filter by message type
+            sender: Filter by sender
+            start_time: Filter by start time
+            end_time: Filter by end time
+            limit: Maximum number of messages to export
+
+        Returns:
+            True if successful
+        """
+        try:
+            messages = self.get_messages(
+                msg_type=msg_type,
+                sender=sender,
+                start_time=start_time,
+                end_time=end_time,
+                limit=limit,
+            )
+
+            output_path = Path(output_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Convert to dict format
+            data = {
+                'export_time': datetime.now().isoformat(),
+                'total_messages': len(messages),
+                'filters': {
+                    'msg_type': msg_type,
+                    'sender': sender,
+                    'start_time': start_time.isoformat() if start_time else None,
+                    'end_time': end_time.isoformat() if end_time else None,
+                },
+                'messages': [msg.to_dict() for msg in messages]
+            }
+
+            with open(output_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+
+            logger.info(f"Exported {len(messages)} messages to {output_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to export messages to JSON: {e}")
+            return False
+
+    def get_database_size(self) -> Dict[str, Any]:
+        """Get database file size statistics"""
+        try:
+            db_size = self.db_path.stat().st_size
+
+            # Get table sizes
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute("SELECT COUNT(*) FROM messages")
+                main_count = cursor.fetchone()[0]
+
+                cursor.execute("SELECT COUNT(*) FROM messages_archive")
+                archive_count = cursor.fetchone()[0]
+
+            return {
+                'file_size_bytes': db_size,
+                'file_size_mb': round(db_size / (1024 * 1024), 2),
+                'main_messages': main_count,
+                'archived_messages': archive_count,
+                'total_messages': main_count + archive_count,
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to get database size: {e}")
+            return {}
+
+    def optimize_database(self) -> bool:
+        """
+        Optimize database (VACUUM and ANALYZE)
+
+        Returns:
+            True if successful
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                logger.info("Optimizing database...")
+
+                # VACUUM to reclaim space
+                cursor.execute("VACUUM")
+
+                # ANALYZE to update statistics
+                cursor.execute("ANALYZE")
+
+                conn.commit()
+
+                logger.info("Database optimization complete")
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to optimize database: {e}")
+            return False
