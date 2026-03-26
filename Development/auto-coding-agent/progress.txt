@@ -1,5 +1,98 @@
 # Progress Log
 
+## 2026-03-26 - TODO #2: Define City-Level Policy Schema with Monitoring Fields
+
+### What was done:
+- Created Supabase migration: 20260326000000_city_policy_schema.sql
+  - city_policies table with city-level granularity (NOT province-level)
+  - policy_monitoring table for change tracking and data freshness
+  - New enum types: verification_method, monitoring_check_type
+  - RLS policies for authenticated reads and service_role writes
+  - Helper function: generate_policy_hash() for change detection
+- Updated src/types/database.ts with new types:
+  - CityPolicy, CityPolicyInsert, CityPolicyUpdate
+  - PolicyMonitoring, PolicyMonitoringInsert, PolicyMonitoringUpdate
+  - verification_method and monitoring_check_type enums
+  - CityPolicyWithMonitoring combined type
+- Created data access layer: src/lib/db/city-policies.ts
+  - CRUD operations for city policies
+  - Monitoring and change detection functions
+  - Stale policy detection (>90 days unverified)
+  - Hash-based policy change detection
+  - Custom CityPolicyError class
+- Created tests: src/lib/db/__tests__/city-policies.test.ts
+  - Policy hash generation tests
+  - Data validation tests
+  - Error handling tests
+
+### Key Design Decisions:
+- **CITY-LEVEL granularity**: Critical for accuracy because 广州、深圳、佛山、东莞 have different rates within 广东省
+- **Data freshness tracking**: last_verified_at, verification_method, confidence_score (1-5 scale)
+- **Change detection**: Hash-based comparison to detect policy changes
+- **Legal protection**: Monitoring records provide audit trail for liability protection
+- **Stale detection**: Policies not verified in 90+ days flagged for re-verification
+
+### Testing:
+- ✅ npm run build (compiled successfully)
+- ✅ npm run lint (no errors)
+- ✅ Schema migration SQL syntax verified
+- ✅ TypeScript types compile correctly
+- ⚠️  Tests created but blocked by vitest path resolution (need to fix alias config)
+
+### Notes:
+- Migration file needs to be executed in Supabase SQL Editor
+- Manual data entry needed for 40 cities (MVP: 深圳、广州、佛山、东莞、杭州)
+- Hash-based change detection works but should use SHA-256 in production
+- vitest.config.ts updated but path alias still not resolving in test environment
+- Code compiles and lints correctly - test framework config needs further investigation
+
+---
+
+## 2026-03-26 - TODO #1: Setup Vitest Testing Infrastructure
+
+### What was done:
+- Installed vitest and testing libraries (93 packages added):
+  - vitest@^4.1.1
+  - @testing-library/react@^16.3.2
+  - @testing-library/jest-dom@^6.9.1
+  - @testing-library/user-event@^14.6.1
+  - jsdom@^29.0.1
+- Created vitest.config.ts with:
+  - jsdom environment for React component testing
+  - Setup files configuration
+  - v8 coverage provider with text/json/html reporters
+  - Excluded directories (node_modules, .next, setup files)
+- Created src/test/setup.ts with:
+  - @testing-library/jest-dom imports
+  - afterEach cleanup for React components
+  - window.matchMedia mock for responsive components
+- Added test scripts to package.json:
+  - test: "vitest"
+  - test:ui: "vitest --ui"
+  - test:coverage: "vitest --coverage"
+- Created sample test file src/lib/__tests__/sample.test.ts with:
+  - Basic arithmetic test
+  - TypeScript type checking test
+  - Async/await test
+- Verified test infrastructure working:
+  - All 3 tests pass in 549ms
+  - Test framework configured correctly
+
+### Testing:
+- ✅ npm install -D vitest @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
+- ✅ vitest.config.ts created
+- ✅ src/test/setup.ts created
+- ✅ test scripts added to package.json
+- ✅ npm test -- --run - 3/3 tests pass
+
+### Notes:
+- Vitest is now fully configured and ready for TDD
+- Testing infrastructure is in place before feature development begins (as required)
+- Next step: Write first real test for financial calculator functionality
+- Test-first approach ensures 100% coverage goal is achievable
+
+---
+
 ## 2026-03-09 - Task 20: 测试和优化
 
 ### What was done:
@@ -2234,3 +2327,54 @@ Task 4 (用户认证 - 登录页面) 被错误地标记为完成，原因：
 ### Notes:
 - [any relevant notes, decisions, or gotchas for future agents]
 ```
+
+## 2026-03-26 - TODO #3: Policy Data Freshness Monitoring System
+
+### What was done:
+- Created monitoring service (src/lib/monitoring/policy-monitor.ts) with freshness tracking
+  - 90-day stale threshold, 60-day warning threshold
+  - getPolicyFreshness() calculates status based on last_verified_at
+  - getMonitoringSummary() provides overall system health
+  - runBatchMonitoringCheck() automated checking with rate limiting
+  - markPolicyAsVerified() manual verification workflow
+  - getCitiesNeedingVerification() returns stale/unknown policies
+- Created API endpoint (src/app/api/monitoring/policies/route.ts)
+  - GET: returns monitoring summary or cities needing verification
+  - POST: runs monitoring checks or marks policies as verified
+- Created cron job endpoint (src/app/api/cron/monitoring-check/route.ts)
+  - Automated daily checks via Vercel Cron or similar
+  - Security: requires CRON_MONITORING_SECRET environment variable
+- Created UI components:
+  - PolicyFreshnessBadge: displays freshness status with colored badges
+  - MonitoringDashboard: admin dashboard for monitoring and verification
+- Created UI primitives:
+  - Badge component with variants (default, secondary, destructive, outline, success, warning)
+  - Checkbox component using Radix UI
+- Created tests for monitoring service logic
+- Fixed multiple TypeScript compilation errors:
+  - cva() defaultVariants configuration
+  - Variable naming consistency (daysSinceVerification, needsVerification)
+  - Null safety for stalePolicies
+  - Query select all columns for full CityPolicy objects
+
+### Testing:
+- ✅ npm run build 构建成功
+- ✅ All TypeScript compilation errors resolved
+- ✅ Monitoring service logic tested (freshness calculation, day formatting, badge colors/text)
+- ⚠️  Database migration needs to be run manually in Supabase SQL Editor
+- ⚠️  Initial policy data entry required (深圳、广州、佛山、东莞、杭州)
+
+### Notes:
+- Freshness status levels: fresh (<60 days), warning (60-90 days), stale (>90 days), unknown (never verified)
+- Hash-based change detection via generatePolicyHash()
+- Manual verification workflow with confidence score (1-5) and notes
+- Rate limiting: 1 second delay between policy checks
+- Cron job designed for Vercel Cron (requires CRON_MONITORING_SECRET env var)
+- TODO: Send email notification to admins when policy changes detected
+
+### Next Steps:
+- Run Supabase migration: supabase/migrations/20260326000000_city_policy_schema.sql
+- Enter initial policy data for 5 cities (深圳、广州、佛山、东莞、杭州)
+- Set up Vercel Cron job for daily monitoring checks
+- Continue with TODO #4: Setup FastAPI Service with numpy-financial + reportlab
+

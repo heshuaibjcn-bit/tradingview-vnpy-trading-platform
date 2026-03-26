@@ -579,6 +579,107 @@ export interface Database {
           },
         ];
       };
+      city_policies: {
+        Row: {
+          id: string;
+          city_name: string;
+          province_code: string;
+          province_name: string;
+          peak_price: number;
+          valley_price: number;
+          flat_price: number;
+          peak_hours: string;
+          valley_hours: string;
+          subsidy_amount: number;
+          source_url: string;
+          effective_date: string;
+          last_verified_at: string | null;
+          verification_method: verification_method;
+          confidence_score: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          city_name: string;
+          province_code: string;
+          province_name: string;
+          peak_price: number;
+          valley_price: number;
+          flat_price: number;
+          peak_hours: string;
+          valley_hours: string;
+          subsidy_amount?: number;
+          source_url: string;
+          effective_date: string;
+          last_verified_at?: string | null;
+          verification_method?: verification_method;
+          confidence_score?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          city_name?: string;
+          province_code?: string;
+          province_name?: string;
+          peak_price?: number;
+          valley_price?: number;
+          flat_price?: number;
+          peak_hours?: string;
+          valley_hours?: string;
+          subsidy_amount?: number;
+          source_url?: string;
+          effective_date?: string;
+          last_verified_at?: string | null;
+          verification_method?: verification_method;
+          confidence_score?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: never[];
+      };
+      policy_monitoring: {
+        Row: {
+          id: string;
+          city_policy_id: string;
+          check_type: monitoring_check_type;
+          previous_hash: string | null;
+          new_hash: string | null;
+          change_detected: boolean;
+          checked_at: string;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          city_policy_id: string;
+          check_type: monitoring_check_type;
+          previous_hash?: string | null;
+          new_hash?: string | null;
+          change_detected?: boolean;
+          checked_at?: string;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          city_policy_id?: string;
+          check_type?: monitoring_check_type;
+          previous_hash?: string | null;
+          new_hash?: string | null;
+          change_detected?: boolean;
+          checked_at?: string;
+          notes?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "policy_monitoring_city_policy_id_fkey";
+            columns: ["city_policy_id"];
+            isOneToOne: false;
+            referencedRelation: "city_policies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -594,6 +695,8 @@ export interface Database {
       order_status: order_status;
       order_side: order_side;
       alert_condition_type: alert_condition_type;
+      verification_method: verification_method;
+      monitoring_check_type: monitoring_check_type;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -611,6 +714,10 @@ export type strategy_type = "ma" | "macd" | "kdj" | "breakout" | "grid";
 export type order_status = "pending" | "submitted" | "partial_filled" | "filled" | "cancelled" | "failed";
 export type order_side = "buy" | "sell";
 export type alert_condition_type = "price_above" | "price_below" | "volume_spike" | "percent_change" | "indicator";
+
+// Energy storage system enum types
+export type verification_method = "manual" | "automated";
+export type monitoring_check_type = "scheduled" | "user_report" | "automated";
 
 // Convenience types for tables
 export type Project = Database["public"]["Tables"]["projects"]["Row"];
@@ -687,3 +794,43 @@ export type OrderWithTrades = Order & {
 export type StrategyWithSignals = Strategy & {
   signals: StrategySignal[];
 };
+
+// ============================================================================
+// ENERGY STORAGE INVESTMENT DECISION SYSTEM TYPES
+// ============================================================================
+
+export type CityPolicy = Database["public"]["Tables"]["city_policies"]["Row"];
+export type CityPolicyInsert = Database["public"]["Tables"]["city_policies"]["Insert"];
+export type CityPolicyUpdate = Database["public"]["Tables"]["city_policies"]["Update"];
+
+export type PolicyMonitoring = Database["public"]["Tables"]["policy_monitoring"]["Row"];
+export type PolicyMonitoringInsert = Database["public"]["Tables"]["policy_monitoring"]["Insert"];
+export type PolicyMonitoringUpdate = Database["public"]["Tables"]["policy_monitoring"]["Update"];
+
+// Combined types
+export type CityPolicyWithMonitoring = CityPolicy & {
+  policy_monitoring: PolicyMonitoring[];
+};
+
+// Monitoring types (not in database, used for API responses)
+export interface MonitoringSummary {
+  total_policies: number;
+  fresh_policies: number;
+  warning_policies: number;
+  stale_policies: number;
+  unknown_policies: number;
+  needs_verification: CityPolicy[];
+}
+
+export interface MonitoringResult {
+  checked: number;
+  changed: number;
+  errors: number;
+  results?: Array<{
+    city_policy_id: string;
+    city_name: string;
+    checked: boolean;
+    changed: boolean;
+    error?: string;
+  }>;
+}
