@@ -2378,3 +2378,80 @@ Task 4 (用户认证 - 登录页面) 被错误地标记为完成，原因：
 - Set up Vercel Cron job for daily monitoring checks
 - Continue with TODO #4: Setup FastAPI Service with numpy-financial + reportlab
 
+
+## 2026-03-26 - TODO #4: FastAPI Service with numpy-financial + reportlab
+
+### What was done:
+- Created FastAPI service structure (energy-storage-api/)
+- Implemented investment calculator service using numpy-financial
+  - IRR calculation with numpy_financial.irr()
+  - NPV calculation with numpy_financial.npv()
+  - Payback period calculation with fractional years
+  - ROI calculation
+  - Cash flow projections for project lifetime
+- Created Pydantic models for request/response validation
+  - InvestmentRequest: Calculation parameters
+  - InvestmentAnalysis: Complete analysis results
+  - InvestmentMetrics: Financial metrics (IRR, NPV, payback, ROI)
+  - CashFlowProjection: Year-by-year cash flows
+  - ElectricityRate: City-specific rate structure
+  - StorageSystem: Battery system specifications
+- Created PDF report generator using reportlab
+  - Professional Chinese investment reports
+  - 7 sections: Title, Executive Summary, System Specs, Financial Metrics, Cash Flows, Recommendation, Risk Factors
+  - Tables, formatting, styling
+- Implemented API endpoints
+  - POST /api/v1/investment/calculate - Calculate investment returns
+  - POST /api/v1/investment/report/generate - Generate PDF report
+  - GET /api/v1/investment/report/download/{filename} - Download PDF
+  - GET /api/v1/investment/scenarios - Get available scenarios
+  - GET /api/v1/investment/health - Health check
+- Added revenue streams calculation
+  - Arbitrage revenue (buy valley, sell peak)
+  - Peak shaving revenue (demand charge reduction)
+  - Subsidy revenue (government subsidies)
+- Added cost components
+  - CAPEX: Equipment + Installation + Grid connection
+  - OPEX: Maintenance + Insurance + Electricity (charging)
+- Implemented scenario analysis
+  - Optimistic: Higher prices, more subsidy
+  - Base: Current rates
+  - Conservative: Lower prices, less subsidy
+- Created comprehensive README with usage examples
+- Created startup script (start-energy-storage-api.sh)
+- Created pytest tests for calculator service
+
+### Testing:
+- ✅ All Python syntax checks passed
+- ✅ Pydantic models validate correctly
+- ✅ Investment calculator logic implemented
+- ✅ PDF report generator implemented
+- ⚠️  Integration testing requires:
+  - Running FastAPI server
+  - Calling API endpoints
+  - Verifying PDF generation
+
+### Notes:
+- Uses numpy-financial for professional IRR/NPV calculations
+- Supports city-level granularity (深圳、广州、佛山、东莞、杭州)
+- PDF reports in Chinese with professional formatting
+- Recommendation logic: IRR > 12% & payback < 8 years = Strong Buy
+- FastAPI with auto-generated Swagger docs at /docs
+- CORS configured for Next.js frontend integration
+
+### Dependencies:
+- fastapi==0.115.0
+- uvicorn[standard]==0.32.0
+- numpy-financial==1.1.0
+- reportlab==4.2.0
+- Pydantic for data validation
+- Supabase for city policy data (future integration)
+
+### Next Steps:
+- Test API endpoints with actual server
+- Integrate with Next.js frontend
+- Connect to Supabase for real city policy data
+- Add authentication/authorization
+- Deploy to production (Vercel/Railway/Render)
+- Continue with TODO #5 (next task in engineering review)
+
